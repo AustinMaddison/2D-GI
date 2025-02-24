@@ -47,9 +47,8 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 int main (int argc, char *argv[])
 {
 
-	// InitGui
-
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
+	// InitWindow
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_RESIZABLE);
 	InitWindow(640, 360, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
 	SetWindowMinSize(480, 220);
     SetExitKey(0);
@@ -58,15 +57,11 @@ int main (int argc, char *argv[])
 
 	SearchAndSetResourceDir("resources");
 	SearchAndSetResourceDir("styles");
-
-	Texture wabbit = LoadTexture("wabbit_alpha.png");
 	GuiLoadStyle("style_darker.rgs");
-	
-	bool showMessageBox = false;
+
 	int samples_max = 1024;
 	int samples_curr = 0;
 	float progress = 0;
-
 	
     // General pourpose variables
     Vector2 mouse = { 0, 0 };               // Mouse position
@@ -76,17 +71,18 @@ int main (int argc, char *argv[])
 		samples_curr++;
 		progress = (float)samples_curr / samples_max;
 
-		Vector2 anchorRight;
-		Vector2 anchorVisuals;
+		// Vector2 anchorRight;
+		// Vector2 anchorVisuals;
 		
-		anchorRight.x = (float)GetScreenWidth() - 104;       // Update right-anchor panel
-		anchorVisuals.x = anchorRight.x - 324 + 1;    // Update right-anchor panel
+		// anchorRight.x = (float)GetScreenWidth() - 104;       // Update right-anchor panel
+		// anchorVisuals.x = anchorRight.x - 324 + 1;    // Update right-anchor panel
+
+		
 
         BeginDrawing();
 			ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-			GuiPanel((Rectangle){GetScreenHeight()-12, 120, 1},NULL);
-			GuiProgressBar((Rectangle){0,  GetScreenHeight()-12, 120, 12}, "Samples", "gfg" , &progress,  0.0f, 1.0f);
-
+			GuiPanel((Rectangle){0, GetScreenHeight()-30, GetScreenWidth(), 14}, NULL);
+			GuiProgressBar((Rectangle){0,  GetScreenHeight()-12, GetScreenWidth(), 12}, "Samples", "gfg" , &progress,  0.0f, 1.0f);
         EndDrawing();
 
 
@@ -97,7 +93,7 @@ int main (int argc, char *argv[])
 		// EndDrawing();
 	}
 
-	UnloadTexture(wabbit);
+	// UnloadTexture(wabbit);
 
 	CloseWindow();
 	return 0;
