@@ -2,13 +2,13 @@
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-        "version": "0.2.0",
-        "configurations": [
-          {
-            "name": "Debug",
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "2D-GI",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/Debug/${workspaceFolderBasename}.exe",
+            "program": "${workspaceFolder}/bin/Debug/2D-GI",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -16,49 +16,18 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
-              {
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": false
-              }
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
             ],
-            "windows": {
-              "miDebuggerPath": "gdb.exe",
-            },
-            "osx": {
-              "program": "${workspaceFolder}/bin/Debug/${workspaceFolderBasename}",
-              "MIMode": "lldb"
-            },
-            "linux": {
-              "program": "${workspaceFolder}/bin/Debug/${workspaceFolderBasename}",
-              "miDebuggerPath": "/usr/bin/gdb",
-            },
-            "preLaunchTask": "build debug"
-          },
-          {
-            "name": "Run",
-            "type": "cppdbg",
-            "request": "launch",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "program": "${workspaceFolder}/bin/Release/${workspaceFolderBasename}.exe",
-            "MIMode": "gdb",
-            "windows": {
-              "program": "${workspaceFolder}/bin/Release/${workspaceFolderBasename}.exe",
-              "miDebuggerPath": "gdb.exe"
-            },
-            "osx": {
-              "program": "${workspaceFolder}/bin/Release/${workspaceFolderBasename}",
-              "MIMode": "lldb"
-            },
-            "linux": {
-              "program": "${workspaceFolder}/bin/Release/${workspaceFolderBasename}",
-              "miDebuggerPath": "/usr/bin/gdb"
-            },
-            "preLaunchTask": "build release",
-          }
-        ]
-      }
+            "preLaunchTask": "build debug",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "engineLogging": true
+            }
+        }
+
+    ]
+}
