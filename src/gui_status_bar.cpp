@@ -3,7 +3,6 @@
 #ifndef GUI_PROGRESS_BAR_H
 #define GUI_PROGRESS_BAR_H
 
-
 typedef struct {
 
     // Anchors for panels
@@ -71,3 +70,5 @@ typedef struct {
     bool tracemapLoaded;
 
 } GuiMainToolbarState;
+
+#endif
