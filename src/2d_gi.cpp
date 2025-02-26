@@ -1,9 +1,9 @@
 
-#define TOOL_NAME               "2D GI Tracer"
-#define TOOL_SHORT_NAME         "2D-GITracer"
+#define TOOL_NAME               "2D Global Illumination"
+#define TOOL_SHORT_NAME         "2D-GI"
 #define TOOL_VERSION            "1.0"
-#define TOOL_DESCRIPTION        "lorem"
-#define TOOL_DESCRIPTION_BREAK  "lorem"
+#define TOOL_DESCRIPTION        ""
+#define TOOL_DESCRIPTION_BREAK  ""
 #define TOOL_RELEASE_DATE       "Month.Date"
 #define TOOL_LOGO_COLOR         0x7da9b9ff
 
@@ -76,15 +76,14 @@ int main (int argc, char *argv[])
 		
 		// anchorRight.x = (float)GetScreenWidth() - 104;       // Update right-anchor panel
 		// anchorVisuals.x = anchorRight.x - 324 + 1;    // Update right-anchor panel
-
 		
-
         BeginDrawing();
 			ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-			GuiPanel((Rectangle){0, GetScreenHeight()-30, GetScreenWidth(), 14}, NULL);
-			GuiProgressBar((Rectangle){0,  GetScreenHeight()-12, GetScreenWidth(), 12}, "Samples", "gfg" , &progress,  0.0f, 1.0f);
-        EndDrawing();
+			GuiPanel((Rectangle){0, GetScreenHeight()-30, GetScreenWidth(), 30}, NULL);
+			GuiDrawText("Hello", (Rectangle){0,  GetScreenHeight()-50, GetScreenWidth(), 12}, 0, WHITE);
+			GuiProgressBar((Rectangle){0,  GetScreenHeight()-12, GetScreenWidth(), 12}, "", "" , &progress,  0.0f, 1.0f);
 
+        EndDrawing();
 
 		// BeginDrawing();
 		// ClearBackground(BLACK);

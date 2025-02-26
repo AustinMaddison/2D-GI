@@ -401,3 +401,4 @@ raylib-master
 Makefile
 /*.sln
 pureref/
+*.aux
