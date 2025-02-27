@@ -1,6 +1,9 @@
 \documentclass[sigconf, nonacm]{acmart}
 \usepackage[scaled]{helvet} % Load Helvetica
 \usepackage{titlesec}
+\usepackage{datetime}
+\usepackage{fancyhdr}
+
 
 \titleformat{\section}{\sffamily\Large\bfseries}{\thesection}{1em}{}
 \titleformat{\subsection}{\sffamily\large\bfseries}{\thesubsection}{1em}{}
@@ -42,7 +45,8 @@
   \country{}
 }
 
-\renewcommand{\shortauthors}{APAL Project Proposal: Tour Of 2D Global Illumination Techniques}
+\renewcommand{\shortauthors}{\thepage \hspace{5pt}  $\bullet$ \hspace{5pt} APAL Project Proposal: Tour Of 2D Global Illumination Techniques }
+
 
 % \begin{abstract}
 %   A clear and well-documented \LaTeX\ document is presented as an
@@ -54,15 +58,15 @@
 % \end{abstract}
 
 
-\begin{teaserfigure}
-  \includegraphics[width=\textwidth]{sampleteaser}
-  \caption{Seattle Mariners at Spring Training, 2010.}
-  \Description{Enjoying the baseball game from the third-base
-  seats. Ichiro Suzuki preparing to bat.}
-  \label{fig:teaser}
-\end{teaserfigure}
+% \begin{teaserfigure}
+%   \includegraphics[width=\textwidth]{sampleteaser}
+%   \caption{Seattle Mariners at Spring Training, 2010.}
+%   \Description{Enjoying the baseball game from the third-base
+%   seats. Ichiro Suzuki preparing to bat.}
+%   \label{fig:teaser}
+% \end{teaserfigure}
 
-\received{26 February 2025}
+\received{\today}
 % \received[revised]{12 March 2009}
 % \received[accepted]{5 June 2009}
 
@@ -71,13 +75,14 @@
 %% information and builds the first part of the formatted document.
 \maketitle
 
+% \raggedbottom
 \section{Problem Description}
 
 % In recent years, offline computer graphics have achieved photorealism thanks to advancements in modern hardware, rendering algorithms, tools, and skilled artists. \textit{Avatar: The Way of Water} by W\=et\=a Digital is a prime example, demonstrating the ability to craft virtual worlds that appear almost indistinguishable from reality.
 
 % On the other hand, real-time computer graphics have made significant strides toward achieving similar levels of visual fidelity. However, reaching this target without substantial performance compromises remains a challenge. The key difference lies in constraints---offline rendering is not bound by strict timing requirements, whereas real-time rendering must consistently produce frames in $\leq 26$ms.
 
-One of the most critical components of realistic rendering is \textbf{Indirect Illumination}, also known as \textbf{Global Illumination (GI)}. Offline renderers typically solve for the radiance of visible surfaces in a scene using Monte Carlo raytracing, iterating until the image converges to a noise-free result. This level of computation is infeasible for real-time rendering without specialized optimizations because of ray-tracing's long running time to converge.
+One of the most critical components of realistic rendering is \textbf{Indirect Illumination}, also known as \textbf{Global Illumination (GI)}. Offline renderers typically solve for the radiance of visible surfaces in a scene using Monte Carlo Raytracing\cite{kajiya}, iterating until the image converges to a noise-free result. This level of computation is infeasible for real-time rendering budget of $\le$26ms per frame without specialized optimizations because of ray-tracing's long running time to converge.
 
 
 \section{Literature Review}
@@ -96,26 +101,24 @@ Over the past decade, real-time GI solutions have relied on secondary scene repr
         \item Uses efficient structures such as:
         \begin{itemize}
             \item Discrete Signed Distance Fields
-            \item Voxels
-            \item Proxies
+            \item Voxels 
+            \item Proxies (low LOD proxies of LOD0 scene meshes)
         \end{itemize}
-        \item Traces rays against these representations rather than mesh geometry.
     \end{itemize}
     
     \item \textbf{Screen-Space Methods}
     \begin{itemize}
-        \item Ray-traces using information from the G-buffer.
-        \item Limited to what is visible on-screen, missing off-screen details.
+        \item Raytrace against information in the G-buffer (Depth, Albedo, Normal Buffer). 
     \end{itemize}
     
-    \item \textbf{Probes}
+    \item \textbf{Irradiance Probes}
     \begin{itemize}
         \item Stores a coarse irradiance field.
         \item Can be precomputed or updated dynamically.
     \end{itemize}
 \end{enumerate}
 
-Additional modern techniques that try to bring Monte Carlo Integration into realtime include:
+Additional modern techniques that try to bring Monte Carlo Raytracing into realtime include:
 
 \begin{itemize}
     \item \textbf{Machine Learning (ML)}
@@ -130,32 +133,70 @@ Additional modern techniques that try to bring Monte Carlo Integration into real
     \end{itemize}
 \end{itemize}
 
-Among these techniques, \textbf{Irradiance Probes} have been one of the most favorable approaches due to their:
+\paragraph{Irradiance Probes} Among these techniques, \textbf{Irradiance Probes}\cite{crytek} have been one of the most favorable approaches due to their:
 \begin{itemize}
     \item Simplicity
     \item Scalabilty
-    \item Precomputed nature
-    \item High performance
 \end{itemize}
 
-However, they have notable limitations:
+However, they have notable \textbf{limitations}:
 \begin{itemize}
-    \item They are usually have a coarse resolution because they are placed sparsly limts their ability to capture fine details.
-    \item Ambient soft shadows are often missing, leading to a lack of depth and realism.
-    \item Occluded areas feel \textquotedblleft ungrounded\textquotedblright{} due to insufficient indirect lighting information.
+    \item They are usually have a coarse resolution because they are placed sparsly which limts their ability to capture fine details in exchange for performance.
 \end{itemize}
 
-For non static scenes increasing probe density significantly raises computational costs since the number of required rays scales accordingly. Thus, finding an optimal balance remains a challenge in real-time GI solutions.
+For non static scenes increasing probe density significantly raises computational costs since the number of required rays scales accordingly, so its a bit of a conundrum. Thus, finding an optimal balance remains a challenge in real-time GI solutions.\\
+
+\paragraph{Radiance Cascades} In 2021, Alexander Sannikov, a programmer at Grinding Gear Games, developed a new GI solution called \textbf{radiance cascades}\cite{sannikov} while working on Path Of Exile 2. This solution draws inspiration from irradiance probes and the relationship between linear and angular resolution required to accurately capture an object's shape within a given area. Radiance cascades demonstrate better fidelity than irradiance probes while having a similar performance.\\
+
+Radiance cascades utilize a hierarchy of cascading probes arranged in a grid. Unlike traditional (like Irradiance Probes) methods that shoot rays in random directions to measure the radiance at a point in the scene, radiance cascades employ a more structured approach. At each successive level in the cascade, the probes become more sparse but have higher angular resolution. This means that as you move up the levels, there are fewer probes, but they can capture more detailed angular information about the light in the scene. This hierarchical structure allows for efficient and accurate global illumination by balancing the density and resolution of probes.\\ 
+
+Notable \textbf{limitations}:
+\begin{itemize}
+    \item Since of it's complexity, implementing the solution to 3D world-space hasn't been well explored or documented. 
+\end{itemize}
+
+% \pagebreak
 
 \section{Application}
-
-I aim to develop a 2D Global Illumination Benchmark/Renderer application. This app will allow users to load scene descriptions, including lights, primitives, and material definitions. The application will then render the scene using three different GI solutions for benchmarking purposes.
+I aim to develop a \textbf{GPU benchmarking program}. This app will allow users to load simple 2D scene descriptions, including lights, primitives, and material definitions. The application will then render the scene using \textbf{three different GI solutions in screen-space} for benchmarking purposes.
 \begin{enumerate}
-  \item Reference monte-carlo raytracer CPU.
-  \item Reference monte-carlo raytracer GPU.
-  \item Irradiance probes GPU.
-  \item Radiance cascades GPU.
+  \item \textbf{Reference Per Pixel Raytracer} \itshape{(non-deterministic)}.
+  \item \textbf{Irradiance Probes} \itshape{(non-deterministic)}.
+  \item \textbf{Radiance Cascades} \itshape{(deterministic)}.
 \end{enumerate}
+I chose 2D as it reduces implementation time while still being able to apreciate and draw observatiosn from the different algorithms.
+
+\pagebreak
+
+\subsection*{Theory}
+For each GI solution I will discuss,
+\begin{enumerate}
+    \item \textbf{how they work}
+    \item \textbf{time complexity}
+\end{enumerate}
+How each suceeding GI solution (Monte-Carlo Raytracing $\rightarrow$ Irradiance Probes $\rightarrow$ Radience Cascades) was motivated from the last. 
+
+\subsection*{Practice}
+For each GI soltuion I will compare thier performance and fidelity using the outputs from the benchmarking application...
+\begin{enumerate}
+    \item \textbf{running time}
+    \item \textbf{image output}
+\end{enumerate}
+% As mentioned earlier I will integrate each of the GI solutions into application for benchmarking. I will evaluate each GI solution's running time and image output. Irradiance Probes and Radiance Cascades aim to approximate the result of the montecarlo raytraced GI so to compare the difference image output. 
+
+\bibliographystyle{ACM-Reference-Format}
+% \bibliography{sample-base}
+
+\begin{thebibliography}{9}
+    \bibitem{kajiya}
+    James T. Kajiya, \textit{The rendering equation}, SIGGRAPH '86: Proceedings of the 13th annual conference on Computer graphics and interactive techniques, Pages 143 - 150, \url{https://doi.org/10.1145/15922.15902}, Published: 31 August 1986.
+    
+    \bibitem{crytek}
+    Carsten Dachsbacher, \textit{Cascaded Light Propagation Volumes for Real-Time Indirect Illumination}, Crytek GmbH, VISUS / University Stuttgart, 2010.
+
+    \bibitem{sannikov}
+    Alexander Sannikov, \textit{Radiance Cascades: A Novel Approach to Calculating Global Illumination [WIP]}, Grinding Gear Games.
+\end{thebibliography}
 
 
 % \subsection{Template Parameters}
