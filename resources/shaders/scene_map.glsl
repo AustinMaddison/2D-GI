@@ -143,26 +143,11 @@ float sdf_map(vec2 uv)
 
 void main()
 {
-    // uint neighbourCount = 0;
     ivec2 uv = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
-    // setMap(uv, uv.x/MAP_WIDTH);
 
     float map = sdf_map(uv);
     map = sin(map);
 
     setMap(uv, map);
-    // setMap(p.x, p.y, 1.0f);
-
-    // neighbourCount += fetchGol(x - 1, y - 1);   // Top left
-    // neighbourCount += fetchGol(x, y - 1);       // Top middle
-    // neighbourCount += fetchGol(x + 1, y - 1);   // Top right
-    // neighbourCount += fetchGol(x - 1, y);       // Left
-    // neighbourCount += fetchGol(x + 1, y);       // Right
-    // neighbourCount += fetchGol(x - 1, y + 1);   // Bottom left
-    // neighbourCount += fetchGol(x, y + 1);       // Bottom middle   
-    // neighbourCount += fetchGol(x + 1, y + 1);   // Bottom right
-
-    // if (neighbourCount == 3) setGol(x, y, 1);
-    // else if (neighbourCount == 2) setGol(x, y, fetchGol(x, y));
-    // else setGol(x, y, 0);
+    // setMap(uv, 1.0f);
 }
