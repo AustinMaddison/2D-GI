@@ -1,11 +1,11 @@
 
-// #define TOOL_NAME               "2D Global Illumination"
-// #define TOOL_SHORT_NAME         "2D-GI"
-// #define TOOL_VERSION            "1.0"
-// #define TOOL_DESCRIPTION        ""
-// #define TOOL_DESCRIPTION_BREAK  ""
-// #define TOOL_RELEASE_DATE       "Month.Date"
-// #define TOOL_LOGO_COLOR         0x7da9b9ff
+#define TOOL_NAME               "2D Global Illumination"
+#define TOOL_SHORT_NAME         "2D-GI"
+#define TOOL_VERSION            "1.0"
+#define TOOL_DESCRIPTION        ""
+#define TOOL_DESCRIPTION_BREAK  ""
+#define TOOL_RELEASE_DATE       "Month.Date"
+#define TOOL_LOGO_COLOR         0x7da9b9ff
 
 // #include "raylib.h"		// required for for RAYLIB
 
@@ -36,9 +36,9 @@
 // // Global Variables Definition
 // //----------------------------------------------------------------------------------
 
-// static const char *toolName = TOOL_NAME;
-// static const char *toolVersion = TOOL_VERSION;
-// static const char *toolDescription = TOOL_DESCRIPTION;
+static const char *toolName = TOOL_NAME;
+static const char *toolVersion = TOOL_VERSION;
+static const char *toolDescription = TOOL_DESCRIPTION;
 
 
 // //----------------------------------------------------------------------------------
@@ -118,11 +118,9 @@
 
 #include <stdlib.h>
 
-
 #include "raylib.h"
 #include "rlgl.h"
 #include "resource_dir.h"
-
 
 #define RLGL_IMPLEMENTATION
 #define RLGL_RENDER_TEXTURES_HINT
@@ -158,17 +156,23 @@ typedef struct GolUpdateSSBO {
 int main(void)
 {
 
-
+    // Resources
+    /* -------------------------------------------------------------------------- */
 	SearchAndSetResourceDir("resources");
 	SearchAndSetResourceDir("shaders");
 
     // Initialization
     //--------------------------------------------------------------------------------------
-    InitWindow(GOL_WIDTH, GOL_WIDTH, "raylib [rlgl] example - compute shader - game of life");
+	InitWindow(GOL_WIDTH, GOL_WIDTH, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
 
     const Vector2 resolution = { GOL_WIDTH, GOL_WIDTH };
     unsigned int brushSize = 8;
 
+    // Scene map compute shader
+    char *sceneShaderCode = LoadFileText("scene_map.glsl");
+    unsigned int sceneShader = rlCompileShader(sceneShaderCode, RL_COMPUTE_SHADER);
+    unsigned int sceneProgram = rlLoadComputeShaderProgram(sceneShader);
+    UnloadFileText(sceneShaderCode);
 
     // Game of Life logic compute shader
     char *golLogicCode = LoadFileText("gol.glsl");
@@ -177,8 +181,11 @@ int main(void)
     UnloadFileText(golLogicCode);
 
     // Game of Life logic render shader
-    Shader golRenderShader = LoadShader(NULL, "gol_render.glsl");
-    int resUniformLoc = GetShaderLocation(golRenderShader, "resolution");
+    // Shader golRenderShader = LoadShader(NULL, "gol_render.glsl");
+    // int resUniformLoc = GetShaderLocation(golRenderShader, "resolution");
+
+    Shader sceneRenderShader = LoadShader(NULL, "scene_map_render.glsl");
+    int resUniformLoc = GetShaderLocation(sceneRenderShader, "resolution");
 
     // Game of Life transfert shader (CPU<->GPU download and upload)
     char *golTransfertCode = LoadFileText("gol_transfert.glsl");
@@ -191,6 +198,7 @@ int main(void)
     unsigned int ssboB = rlLoadShaderBuffer(GOL_WIDTH*GOL_WIDTH*sizeof(unsigned int), NULL, RL_DYNAMIC_COPY);
     unsigned int ssboTransfert = rlLoadShaderBuffer(sizeof(GolUpdateSSBO), NULL, RL_DYNAMIC_COPY);
 
+    unsigned int ssboSceneMap = rlLoadShaderBuffer(GOL_WIDTH*GOL_WIDTH*sizeof(float), NULL, RL_DYNAMIC_COPY);
     GolUpdateSSBO transfertBuffer = { 0 };
 
     // Create a white texture of the size of the window to update
@@ -233,6 +241,12 @@ int main(void)
         }
         else
         {
+            // Process map
+            rlEnableShader(sceneProgram);
+            rlBindShaderBuffer(ssboSceneMap, 1);
+            rlComputeShaderDispatch(GOL_WIDTH/16, GOL_WIDTH/16, 1);
+            rlDisableShader();
+
             // Process game of life logic
             rlEnableShader(golLogicProgram);
             rlBindShaderBuffer(ssboA, 1);
@@ -246,8 +260,11 @@ int main(void)
             ssboB = temp;
         }
 
-        rlBindShaderBuffer(ssboA, 1);
-        SetShaderValue(golRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
+        // rlBindShaderBuffer(ssboA, 1);
+        // SetShaderValue(golRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
+
+        rlBindShaderBuffer(ssboSceneMap, 1);
+        SetShaderValue(sceneRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
         //----------------------------------------------------------------------------------
 
         // Draw
@@ -256,13 +273,13 @@ int main(void)
 
             ClearBackground(BLANK);
 
-            BeginShaderMode(golRenderShader);
+            BeginShaderMode(sceneRenderShader);
                 DrawTexture(whiteTex, 0, 0, WHITE);
             EndShaderMode();
 
             DrawRectangleLines(GetMouseX() - brushSize/2, GetMouseY() - brushSize/2, brushSize, brushSize, RED);
 
-            DrawText("Use Mouse wheel to increase/decrease brush size", 10, 10, 20, WHITE);
+            DrawText(TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription), 10, 10, 10, Color({255, 255, 255, 100}));
             DrawFPS(GetScreenWidth() - 100, 10);
 
         EndDrawing();
@@ -281,7 +298,8 @@ int main(void)
     rlUnloadShaderProgram(golLogicProgram);
 
     UnloadTexture(whiteTex);            // Unload white texture
-    UnloadShader(golRenderShader);      // Unload rendering fragment shader
+    // UnloadShader(golRenderShader);      // Unload rendering fragment shader
+    UnloadShader(sceneRenderShader);      // Unload rendering fragment shader
 
     CloseWindow();                      // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
