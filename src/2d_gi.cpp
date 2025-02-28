@@ -117,6 +117,8 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 // ********************************************************************************************/
 
 #include <stdlib.h>
+#include <iostream>
+
 
 #include "raylib.h"
 #include "rlgl.h"
@@ -129,7 +131,7 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 
 // IMPORTANT: This must match gol*.glsl GOL_WIDTH constant.
 // This must be a multiple of 16 (check golLogic compute dispatch).
-#define GOL_WIDTH 768
+#define MAP_WIDTH 768
 
 // Maximum amount of queued draw commands (squares draw from mouse down events).
 #define MAX_BUFFERED_TRANSFERTS 48
@@ -163,9 +165,9 @@ int main(void)
 
     // Initialization
     //--------------------------------------------------------------------------------------
-	InitWindow(GOL_WIDTH, GOL_WIDTH, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+	InitWindow(MAP_WIDTH, MAP_WIDTH, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
 
-    const Vector2 resolution = { GOL_WIDTH, GOL_WIDTH };
+    const Vector2 resolution = { MAP_WIDTH, MAP_WIDTH };
     unsigned int brushSize = 8;
 
     // Scene map compute shader
@@ -186,6 +188,7 @@ int main(void)
 
     Shader sceneRenderShader = LoadShader(NULL, "scene_map_render.glsl");
     int resUniformLoc = GetShaderLocation(sceneRenderShader, "resolution");
+    int mousePosUniformLoc = GetShaderLocation(sceneRenderShader, "mouse");
 
     // Game of Life transfert shader (CPU<->GPU download and upload)
     char *golTransfertCode = LoadFileText("gol_transfert.glsl");
@@ -194,26 +197,29 @@ int main(void)
     UnloadFileText(golTransfertCode);
 
     // Load shader storage buffer object (SSBO), id returned
-    unsigned int ssboA = rlLoadShaderBuffer(GOL_WIDTH*GOL_WIDTH*sizeof(unsigned int), NULL, RL_DYNAMIC_COPY);
-    unsigned int ssboB = rlLoadShaderBuffer(GOL_WIDTH*GOL_WIDTH*sizeof(unsigned int), NULL, RL_DYNAMIC_COPY);
+    unsigned int ssboA = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(unsigned int), NULL, RL_DYNAMIC_COPY);
+    unsigned int ssboB = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(unsigned int), NULL, RL_DYNAMIC_COPY);
     unsigned int ssboTransfert = rlLoadShaderBuffer(sizeof(GolUpdateSSBO), NULL, RL_DYNAMIC_COPY);
 
-    unsigned int ssboSceneMap = rlLoadShaderBuffer(GOL_WIDTH*GOL_WIDTH*sizeof(float), NULL, RL_DYNAMIC_COPY);
+    unsigned int ssboSceneMap = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(float), NULL, RL_DYNAMIC_COPY);
+    unsigned int ssboSceneMapPrev = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(float), NULL, RL_DYNAMIC_COPY);
     GolUpdateSSBO transfertBuffer = { 0 };
 
     // Create a white texture of the size of the window to update
     // each pixel of the window using the fragment shader: golRenderShader
-    Image whiteImage = GenImageColor(GOL_WIDTH, GOL_WIDTH, WHITE);
+    Image whiteImage = GenImageColor(MAP_WIDTH, MAP_WIDTH, WHITE);
     Texture whiteTex = LoadTextureFromImage(whiteImage);
     UnloadImage(whiteImage);
     //--------------------------------------------------------------------------------------
 
+    // Main game loop
     // Main game loop
     while (!WindowShouldClose())
     {
         // Update
         //----------------------------------------------------------------------------------
         brushSize += (int)GetMouseWheelMove();
+        float distClosestSurface;
 
         if ((IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
             && (transfertBuffer.count < MAX_BUFFERED_TRANSFERTS))
@@ -244,26 +250,36 @@ int main(void)
             // Process map
             rlEnableShader(sceneProgram);
             rlBindShaderBuffer(ssboSceneMap, 1);
-            rlComputeShaderDispatch(GOL_WIDTH/16, GOL_WIDTH/16, 1);
+            rlComputeShaderDispatch(MAP_WIDTH/16, MAP_WIDTH/16, 1);
             rlDisableShader();
 
             // Process game of life logic
             rlEnableShader(golLogicProgram);
             rlBindShaderBuffer(ssboA, 1);
             rlBindShaderBuffer(ssboB, 2);
-            rlComputeShaderDispatch(GOL_WIDTH/16, GOL_WIDTH/16, 1);
+            rlComputeShaderDispatch(MAP_WIDTH/16, MAP_WIDTH/16, 1);
             rlDisableShader();
+
+            
 
             // ssboA <-> ssboB
             int temp = ssboA;
             ssboA = ssboB;
             ssboB = temp;
+
+
+            int swap = ssboSceneMap;
+            ssboSceneMap = ssboSceneMapPrev;
+            ssboSceneMapPrev = swap;
         }
 
         // rlBindShaderBuffer(ssboA, 1);
         // SetShaderValue(golRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
 
+        rlEnableShader(sceneProgram);
         rlBindShaderBuffer(ssboSceneMap, 1);
+
+        rlReadShaderBuffer(ssboSceneMapPrev, &distClosestSurface, sizeof(float), (GetMouseX() + GetMouseY() * MAP_WIDTH) * sizeof(float));
         SetShaderValue(sceneRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
         //----------------------------------------------------------------------------------
 
@@ -277,12 +293,18 @@ int main(void)
                 DrawTexture(whiteTex, 0, 0, WHITE);
             EndShaderMode();
 
-            DrawRectangleLines(GetMouseX() - brushSize/2, GetMouseY() - brushSize/2, brushSize, brushSize, RED);
+            // DrawRectangleLines(GetMouseX() - brushSize/2, GetMouseY() - brushSize/2, brushSize, brushSize, RED);
+            
+            DrawCircleLines(GetMouseX(), GetMouseY(), distClosestSurface, RED);
 
             DrawText(TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription), 10, 10, 10, Color({255, 255, 255, 100}));
+            DrawText(TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()), 10, 30, 10, Color({255, 255, 255, 255}));
+            DrawText(TextFormat("%s %f", "Distance To Closest Surface", distClosestSurface), 10, 50, 10, Color({255, 255, 255, 255}));
             DrawFPS(GetScreenWidth() - 100, 10);
 
         EndDrawing();
+
+        SetTargetFPS(60);
         //----------------------------------------------------------------------------------
     }
 
@@ -293,12 +315,12 @@ int main(void)
     rlUnloadShaderBuffer(ssboB);
     rlUnloadShaderBuffer(ssboTransfert);
 
+
     // Unload compute shader programs
     rlUnloadShaderProgram(golTransfertProgram);
     rlUnloadShaderProgram(golLogicProgram);
 
     UnloadTexture(whiteTex);            // Unload white texture
-    // UnloadShader(golRenderShader);      // Unload rendering fragment shader
     UnloadShader(sceneRenderShader);      // Unload rendering fragment shader
 
     CloseWindow();                      // Close window and OpenGL context
