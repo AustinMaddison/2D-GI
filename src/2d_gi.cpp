@@ -300,7 +300,7 @@ int main(void)
             DrawText(TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription), 10, 10, 10, Color({255, 255, 255, 100}));
             DrawText(TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()), 10, 30, 10, Color({255, 255, 255, 255}));
             DrawText(TextFormat("%s %f", "Distance To Closest Surface", distClosestSurface), 10, 50, 10, Color({255, 255, 255, 255}));
-            DrawFPS(GetScreenWidth() - 100, 10);
+            DrawText(TextFormat("%s %d", "FPS", GetFPS()), 10, 70, 10, Color({255, 255, 255, 255}));
 
         EndDrawing();
 

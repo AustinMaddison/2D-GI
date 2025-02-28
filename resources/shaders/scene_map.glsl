@@ -64,11 +64,13 @@ float sdf_map(vec2 uv)
     float map = INF;
 
     // walls
-    float thickness = 20.0f;
-    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(MAP_WIDTH, 0.0f)));
-    map = min(map, sdSegment(uv, vec2(0.0f, MAP_WIDTH), vec2(MAP_WIDTH, MAP_WIDTH)));
-    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(0.0f, MAP_WIDTH)));
-    map = min(map, sdSegment(uv, vec2(MAP_WIDTH, 0.0f), vec2(MAP_WIDTH, MAP_WIDTH)));
+    float thickness = 5.;
+    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(MAP_WIDTH, 0.0f))-thickness);
+    map = min(map, sdSegment(uv, vec2(0.0f, MAP_WIDTH), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
+    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(0.0f, MAP_WIDTH))-thickness);
+    map = min(map, sdSegment(uv, vec2(MAP_WIDTH, 0.0f), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
+
+    // circle
     map = min(map, sdCircle(uv - vec2(MAP_WIDTH)/2.0f, 50.0f));
     return map;
 }

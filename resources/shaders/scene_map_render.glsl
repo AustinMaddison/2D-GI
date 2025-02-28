@@ -18,8 +18,19 @@ uniform vec2 mouse;
 
 #define getMap(uv) mapBuffer[uv.x + uv.y*uvec2(resolution).x]
 
+
+vec3 renderSDF(float sdf)
+{
+    sdf = sdf/MAP_WIDTH;
+
+    vec3 col = vec3(1.0) - sign(sdf)*vec3(0.9,0.9,0.9);
+	col *= 0.8 + 0.2 * cos(sdf* 600.0);
+	col = mix(col, vec3(1.0), 1.0-smoothstep(0.0,25E-4,abs(sdf)) );
+    return vec3(col);
+}
+
 void main()
 {
     ivec2 uv = ivec2(fragTexCoord*resolution);
-    finalColor = vec4(vec3(sin(getMap(uv)/MAP_WIDTH*100.0f)), 1.0f);
+    finalColor = vec4(renderSDF(getMap(uv)), 1.0f);
 }
