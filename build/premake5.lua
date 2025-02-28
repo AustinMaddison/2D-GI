@@ -11,7 +11,7 @@ newoption
 		{ "openges2", "OpenGL ES2"},
 		{ "openges3", "OpenGL ES3"}
 	},
-	default = "opengl33"
+	default = "opengl43"
 }
 
 function download_progress(total, current)
