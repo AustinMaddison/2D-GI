@@ -56,6 +56,10 @@ layout(std430, binding = 1) writeonly restrict buffer mapLayout {
     float mapBufferDest[];   
 };
 
+float rand(vec2 co)
+{
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
 #define INF 1e6
 #define setMap(uv, value) mapBufferDest[(uv.x) + MAP_WIDTH*(uv.y)] = value
 
@@ -65,13 +69,38 @@ float sdf_map(vec2 uv)
 
     // walls
     float thickness = 5.;
-    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(MAP_WIDTH, 0.0f))-thickness);
-    map = min(map, sdSegment(uv, vec2(0.0f, MAP_WIDTH), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
-    map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(0.0f, MAP_WIDTH))-thickness);
-    map = min(map, sdSegment(uv, vec2(MAP_WIDTH, 0.0f), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
+    // map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(MAP_WIDTH, 0.0f))-thickness);
+    // map = min(map, sdSegment(uv, vec2(0.0f, MAP_WIDTH), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
+    // map = min(map, sdSegment(uv, vec2(0.0f, 0.0f), vec2(0.0f, MAP_WIDTH))-thickness);
+    // map = min(map, sdSegment(uv, vec2(MAP_WIDTH, 0.0f), vec2(MAP_WIDTH, MAP_WIDTH))-thickness);
 
     // circle
-    map = min(map, sdCircle(uv - vec2(MAP_WIDTH)/2.0f, 50.0f));
+
+    float radius = 5.0f;
+    float spacing = 150.0f;
+    float angle = 0.0;
+    float angleIncrement = .1;
+    float radiusIncrement = 10.0;
+    float currentRadius = radius;
+
+    for (float i = 0.0; i < 100.0; i++) {
+        vec2 center = vec2(MAP_WIDTH / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
+        map = min(map, sdCircle(uv - center, radius));
+        angle += angleIncrement;
+        currentRadius += radiusIncrement;
+    }
+
+
+    // random walls
+    float wallThickness = 1.0;
+    float wallLength = 200.0;
+    float numWalls = 10.0;
+    for (float i = 0.0; i < numWalls; i++) {
+        vec2 start = vec2(rand(vec2(i, 0.0)) * MAP_WIDTH, rand(vec2(i, 1.0)) * MAP_WIDTH);
+        vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
+        map = min(map, sdSegment(uv, start, end) - wallThickness);
+    }
+    
     return map;
 }
 

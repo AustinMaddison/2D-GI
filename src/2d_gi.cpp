@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <vector>
 
 #include "raylib.h"
 #include "rlgl.h"
@@ -31,11 +32,12 @@ static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
 #define MAP_WIDTH 768
-#define SAMPLES_MAX 1000
+#define SAMPLES_MAX 1024
+
+#define SNAPSHOT 1023
 
 typedef std::map<char, int> UniformMap;
 
-//------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
 int main(void)
@@ -97,20 +99,23 @@ int main(void)
     float renderProgress=0;
     double time = GetTime();
 
+
+    // Generate SDF Map
+    rlEnableShader(sceneProgram);
+    rlBindShaderBuffer(ssboSceneMap, 1);
+    rlComputeShaderDispatch(MAP_WIDTH/16, MAP_WIDTH/16, 1);
+    rlDisableShader();
+
     // Main game loop
     while (!WindowShouldClose())
     {
         // Update
         //----------------------------------------------------------------------------------
         // WaitTime(1);
-        if(samples < SAMPLES_MAX && GetTime()-time > 0.1)
+        // if(samples < SAMPLES_MAX && GetTime()-time > 0.1)
+        if(samples < SAMPLES_MAX)
         {
             time = GetTime();
-            // Generate SDF Map
-            rlEnableShader(sceneProgram);
-            rlBindShaderBuffer(ssboSceneMap, 1);
-            rlComputeShaderDispatch(MAP_WIDTH/16, MAP_WIDTH/16, 1);
-            rlDisableShader();
 
             // Raytrace
             rlEnableShader(raytraceGiProgram);
@@ -128,6 +133,7 @@ int main(void)
         }
 
         SetShaderValue(sceneRenderShader, resUniformLoc, &resolution, SHADER_UNIFORM_VEC2);
+        
 
         // Draw
         BeginDrawing();
@@ -138,6 +144,44 @@ int main(void)
                 rlBindShaderBuffer(ssboGiMapA, 3);
                 DrawTexture(outputTex, 0, 0, WHITE);
             EndShaderMode();
+
+
+            std::vector<float> vals;
+            if(samples == 256)
+            {
+                float val = 0;
+                for(int i = 0; i < MAP_WIDTH; i++)
+                {
+                    rlReadShaderBuffer(ssboGiMapA, &val, sizeof(float), (i + i * MAP_WIDTH) * sizeof(float));
+                    vals.push_back(val);
+                }
+
+                for(auto x : vals) std::cout << x << ", ";
+                std::cout << '\n';
+
+            }
+
+#ifdef SNAPSHOT
+            if(samples == SNAPSHOT)
+            {
+                RenderTexture2D renderTarget = LoadRenderTexture(resolution.x, resolution.y);
+                
+                BeginTextureMode(renderTarget);
+                    BeginShaderMode(sceneRenderShader);
+                        rlBindShaderBuffer(ssboSceneMap, 1);
+                        rlBindShaderBuffer(ssboGiMapB, 3);
+                        DrawTexture(outputTex, 0, 0, WHITE);
+                    EndShaderMode();
+                EndTextureMode();
+
+                Image img = LoadImageFromTexture(renderTarget.texture); 
+                ExportImage(img, TextFormat("%d_samples.png", SNAPSHOT));  
+                UnloadImage(img);  
+            
+                UnloadRenderTexture(renderTarget);
+            }
+#endif // SNAPSHOT
+
 
 
             if(IsCursorOnScreen())
@@ -154,20 +198,18 @@ int main(void)
             DrawText(TextFormat("%s %f", "Distance To Closest Surface", distClosestSurface), 10, 50, 10, Color({255, 255, 255, 255}));
             DrawText(TextFormat("%s %d", "FPS", GetFPS()), 10, 70, 10, Color({255, 255, 255, 255}));
             DrawRectangle(0, GetScreenHeight()-12, GetScreenWidth(), 12, {0, 0, 0, 200});
-            GuiProgressBar((Rectangle){0,  GetScreenHeight()-12, GetScreenWidth(), 12}, "", "" , &renderProgress,  0.0f, 1.0f);
+            GuiProgressBar((Rectangle){12,  GetScreenHeight()-12*2, GetScreenWidth()-12*2, 12}, "", "" , &renderProgress,  0.0f, 1.0f);
 
-
-            
             // uint genenRayCount = 0;
             // rlReadShaderBuffer(ssboSceneMap, &genenRayCount, sizeof(uint), (GetMouseX() + GetMouseY() * MAP_WIDTH) * sizeof(uint));
             // std::cout << genenRayCount << '\n';
-
-            
         EndDrawing();
 
         // SetTargetFPS(60);
         //----------------------------------------------------------------------------------
     }
+
+
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
