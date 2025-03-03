@@ -387,6 +387,11 @@ INPUT ./1024_samples.png
 INPUT ./1024_samples.png
 INPUT ./1024_samples.png
 INPUT ./1024_samples.png
+INPUT ./1024_samples_crop.png
+INPUT ./1024_samples_crop.png
+INPUT ./1024_samples_crop.png
+INPUT ./1024_samples_crop.png
+INPUT ./1024_samples_crop.png
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/adobe/helvetic/phvr8t.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/adobe/helvetic/phvb8t.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinLibertineTI-tlf-t1.tfm

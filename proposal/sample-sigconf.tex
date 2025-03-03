@@ -67,8 +67,8 @@
 %   \label{fig:teaser}
 % \end{teaserfigure}
 
-\received{\today}
-% \received[revised]{12 March 2009}
+% \received{\today}
+\received[Last modfied]{\today}
 % \received[accepted]{5 June 2009}
 
 %%
@@ -159,9 +159,9 @@ Notable \textbf{limitations}:
 % \pagebreak
 
 \section{Application}
-I aim to develop a \textbf{GPU benchmarking program}. This app will allow users to load simple 2D scene descriptions, including lights, primitives, and material definitions. The application will then render the scene using \textbf{three different GI solutions in screen-space} for benchmarking purposes.
+I aim to develop a \textbf{GPU benchmarking program}. This app will allow users to load simple 2D scene, and material using bitmap. The application will then intepret the image to render the scene using \textbf{three different GI solutions in screen-space} for benchmarking purposes.
 \begin{enumerate}
-  \item \textbf{Reference Per Pixel Raytracer} \itshape{(non-deterministic)}.
+  \item \textbf{Reference Raytracer} \itshape{(non-deterministic)}.
   \item \textbf{Irradiance Probes} \itshape{(non-deterministic)}.
   \item \textbf{Radiance Cascades} \itshape{(deterministic)}.
 \end{enumerate}
@@ -169,7 +169,7 @@ I chose 2D as it reduces implementation time while still being able to apreciate
 
 \pagebreak
 
-I did a preliminary test of using glsl compute shaders as I never used them before.
+I did a preliminary test of using glsl compute shaders as I never used them before. Basic monte carlo raytracer, no colors, all surfaces is a light source, no bounce. I am using chapters 30 to 32 of the textbook "Computer Graphics: Principles and Practice"\cite{textbook} as my main reference.
 
 \begin{figure}[h]
     \centering
@@ -177,12 +177,21 @@ I did a preliminary test of using glsl compute shaders as I never used them befo
     \includegraphics[width=.49\linewidth]{0_samples.png}
     \includegraphics[width=.49\linewidth]{1024_samples.png}
 \end{minipage}%
-\caption{Basic monte carlo raytracer. The left image is rendered with 1 sample, while the right image uses 1024 samples.}
+\caption{The left image is rendered with 1 sample, while the right image uses 1024 samples.}
   \label{fig:teaser}
 \end{figure}
 
-The rays seem to be biased as thier as certain directions have 
+The hash function that I found from a blog\cite{blog} used to generate random directions for every new iteration seems to favor certain directions for some reason.
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.25\linewidth]{1024_samples_crop.png}
+\caption{Star shaped accumalation, side effect of the bias in directions that the hash function has.}
+  \label{fig:teaser}
+\end{figure}
+
+\newpage
+I don't exactly know how to generate better uniform random numbers on the GPU and make it fast, maybe this is an area I should explore, ... idk?
 
 \subsection*{Theory}
 For each GI solution I will discuss,
@@ -200,8 +209,6 @@ For each GI soltuion I will compare thier performance and fidelity using the out
 \end{enumerate}
 
 
-
-
 % As mentioned earlier I will integrate each of the GI solutions into application for benchmarking. I will evaluate each GI solution's running time and image output. Irradiance Probes and Radiance Cascades aim to approximate the result of the montecarlo raytraced GI so to compare the difference image output. 
 
 \bibliographystyle{ACM-Reference-Format}
@@ -215,7 +222,14 @@ For each GI soltuion I will compare thier performance and fidelity using the out
     Carsten Dachsbacher, \textit{Cascaded Light Propagation Volumes for Real-Time Indirect Illumination}, Crytek GmbH, VISUS / University Stuttgart, 2010.
 
     \bibitem{sannikov}
-    Alexander Sannikov, \textit{Radiance Cascades: A Novel Approach to Calculating Global Illumination [WIP]}, Grinding Gear Games.
+    Alexander Sannikov, \textit{Radiance Cascades: A Novel Approach to Calculating Global Illumination [WIP]}, Grinding Gear Games. \url{https://github.com/Raikiri/RadianceCascadesPaper/blob/main/out_latexmk2/RadianceCascades.pdf}
+
+    \bibitem{textbook}
+    John F. Hughes, Andries van Dam, Morgan McGuire, David F. Sklar, James D. Foley, Steven K. Feiner, Kurt Akeley, \textit{Computer Graphics: Principles and Practice}, Third Edition, Addison-Wesley Professional, 2014.
+
+    \bibitem{blog}
+    Blackle Mori, \textit{Useful Functions for Shader Live Coding}, Suricrasia Online, \url{https://suricrasia.online/blog/shader-functions/}, Published: 11 April 2020.
+
 \end{thebibliography}
 
 
