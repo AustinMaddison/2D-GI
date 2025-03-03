@@ -1,7 +1,7 @@
 # Fdb version 4
-["pdflatex"] 1740645038.69686 "/media/austin/austin_ssd/dev/2D-GI/proposal/sample-sigconf.tex" "sample-sigconf.pdf" "sample-sigconf" 1740645040.00608 0
+["pdflatex"] 1740992368.08195 "/media/austin/austin_ssd/dev/2D-GI/proposal/sample-sigconf.tex" "sample-sigconf.pdf" "sample-sigconf" 1740992370.37966 0
   "/etc/texmf/web2c/texmf.cnf" 1740481272.74214 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/media/austin/austin_ssd/dev/2D-GI/proposal/sample-sigconf.tex" 1740645038.45005 31587 30581819e0b217b78617fc8f6e8e5926 ""
+  "/media/austin/austin_ssd/dev/2D-GI/proposal/sample-sigconf.tex" 1740992367.7641 32132 6a80065f855488132b1effdda0f42efb ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa5.enc" 1490131464 2933 9ad527ce78d7c5fa0a642dead095f172 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_7grukw.enc" 1490131464 2934 a4a9158faed2e9e89c771b4e3b7fc12f ""
@@ -181,10 +181,12 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1720733508 41397 9faae6d82bd50f2dbfc10ae285bd31e2 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1740481303 5483312 31090f1c3437d4bbfc097aaea5bf9b97 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1740481379 8243982 0c4cbad0d94099e685e4533e98f2354e ""
+  "0_samples.png" 1740991758.46702 697358 c4534a2f5a0f44107e61bec1ad7a8f06 ""
+  "1024_samples.png" 1740991758.43002 603528 fe2662e53a5a6761e85a2d729cdfcdd1 ""
   "acmart.cls" 1740584034.02006 119755 fb6b15d8a2b05651c52a19a84ffb7b05 ""
-  "sample-sigconf.aux" 1740645039.85408 1259 d0f44a06949db3fc287df2cb8227965f "pdflatex"
-  "sample-sigconf.out" 1740645039.85408 503 bb79112fde1ec011970472563c986638 "pdflatex"
-  "sample-sigconf.tex" 1740645038.45005 31587 30581819e0b217b78617fc8f6e8e5926 ""
+  "sample-sigconf.aux" 1740992370.13215 1715 a7b5d6b18b2bee5de6478f0474e43b86 "pdflatex"
+  "sample-sigconf.out" 1740992370.13315 503 4028e851fc9386d8472831c24bf10216 "pdflatex"
+  "sample-sigconf.tex" 1740992367.7641 32132 6a80065f855488132b1effdda0f42efb ""
   (generated)
   "sample-sigconf.aux"
   "sample-sigconf.log"

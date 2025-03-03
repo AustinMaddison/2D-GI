@@ -30,7 +30,7 @@
 %%
 %% The "title" command has an optional parameter,
 %% allowing the author to define a "short title" to be used in page headers.
-\title{APAL Project Proposal: \\ Tour Of 2D Global Illumination Techniques}
+\title{APAL Project Proposal: \\ 2D Global Illumination}
 
 \author{Austin J. Maddison}
 % \authornote{Both authors contributed equally to this research.}
@@ -59,10 +59,11 @@
 
 
 % \begin{teaserfigure}
-%   \includegraphics[width=\textwidth]{sampleteaser}
-%   \caption{Seattle Mariners at Spring Training, 2010.}
-%   \Description{Enjoying the baseball game from the third-base
-%   seats. Ichiro Suzuki preparing to bat.}
+%     \centering
+%   \includegraphics[width=0.4\textwidth]{sampleteaser}
+%   \caption{Protoype program to see if I could do the application part of my proposal.}
+% %   \Description{Enjoying the baseball game from the third-base
+% %   seats. Ichiro Suzuki preparing to bat.}
 %   \label{fig:teaser}
 % \end{teaserfigure}
 
@@ -75,7 +76,7 @@
 %% information and builds the first part of the formatted document.
 \maketitle
 
-% \raggedbottom
+\raggedbottom
 \section{Problem Description}
 
 % In recent years, offline computer graphics have achieved photorealism thanks to advancements in modern hardware, rendering algorithms, tools, and skilled artists. \textit{Avatar: The Way of Water} by W\=et\=a Digital is a prime example, demonstrating the ability to craft virtual worlds that appear almost indistinguishable from reality.
@@ -168,6 +169,21 @@ I chose 2D as it reduces implementation time while still being able to apreciate
 
 \pagebreak
 
+I did a preliminary test of using glsl compute shaders as I never used them before.
+
+\begin{figure}[h]
+    \centering
+\begin{minipage}{.49\textwidth}
+    \includegraphics[width=.49\linewidth]{0_samples.png}
+    \includegraphics[width=.49\linewidth]{1024_samples.png}
+\end{minipage}%
+\caption{Basic monte carlo raytracer. The left image is rendered with 1 sample, while the right image uses 1024 samples.}
+  \label{fig:teaser}
+\end{figure}
+
+The rays seem to be biased as thier as certain directions have 
+
+
 \subsection*{Theory}
 For each GI solution I will discuss,
 \begin{enumerate}
@@ -182,6 +198,10 @@ For each GI soltuion I will compare thier performance and fidelity using the out
     \item \textbf{running time}
     \item \textbf{image output}
 \end{enumerate}
+
+
+
+
 % As mentioned earlier I will integrate each of the GI solutions into application for benchmarking. I will evaluate each GI solution's running time and image output. Irradiance Probes and Radiance Cascades aim to approximate the result of the montecarlo raytraced GI so to compare the difference image output. 
 
 \bibliographystyle{ACM-Reference-Format}
