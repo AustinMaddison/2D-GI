@@ -37,10 +37,8 @@ uniform uint samples;
 #define getGiB(uv) giBufferB[(uv.x) + MAP_WIDTH*(uv.y)].rgb 
 #define setMap(uv, value) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)] = value
 
-// https://thebookofshaders.com/edit.php#11/2d-gnoise.frag
-
+// https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
-
 float hash(float a, float b) {
     int x = FK(a); int y = FK(b);
     return float((x*x+y)*(y*y-x)+x)/2.14e9;
