@@ -1,129 +1,77 @@
 #version 430
 
-#define MAP_WIDTH 768 // multiple of 16
-#define INF 1e6
-#define PI 3.14159265359
-#define EPSILON 0.01
-#define MAX_STEPS 100
-
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) buffer mapLayout
+layout(std430, binding = 1) readonly buffer sceneGiLayout
 {
-    float mapBuffer[];
+    vec3 sceneGiBuffer[];
 };
 
-layout(std430, binding = 2) buffer generatedRayCountLayout 
+layout(std430, binding = 2) readonly buffer sceneColorLayout 
 {
-    uint genRayCount;   
+    vec3 sceneColorBuffer[];   
 };
 
-layout(std430, binding = 3) writeonly buffer giALayout 
+layout(std430, binding = 3) writeonly buffer finalPassLayout 
 {
-    vec3 giBufferA[];   
+    vec3 finalPassBuffer[];   
 };
 
-layout(std430, binding = 4) readonly buffer giBLayout 
-{
-    vec3 giBufferB[];   
-};
+in uvec3 gl_NumWorkGroups;
+in uvec3 gl_WorkGroupID;
+in uvec3 gl_LocalInvocationID;
+in uvec3 gl_GlobalInvocationID;
+in uint  gl_LocalInvocationIndex;
 
+uniform ivec2 resolution;
 uniform uint samples;
 
-#define getMap(uv) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)]
-#define setGiA(uv, value) giBufferA[(uv.x) + MAP_WIDTH*(uv.y)].rgb = value
-#define getGiB(uv) giBufferB[(uv.x) + MAP_WIDTH*(uv.y)].rgb 
-#define setMap(uv, value) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)] = value
+#define getIdx(uv) (uv.x)+resolution*(uv.y)
 
-// https://suricrasia.online/blog/shader-functions/
-#define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
-float hash(vec2 p) {
-    int x = FK(p.x); int y = FK(p.y);
-    return float((x*x+y)*(y*y-x)+x)/2.14e9;
-}
-
-float hash01(vec2 p) {
-    return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
-}
-
-vec2 rnd_unit_vec2(vec2 p)
+vec3 gammaCorrect(vec3 color, float gamma)
 {
-    float theta = hash01(p) * 2*PI;
-    return vec2(cos(theta), sin(theta));
+    return pow(color, vec3(1.0 / gamma));
 }
 
-bool out_of_bound(ivec2 p)
+// ACES tone mapping curve fit to go from HDR to LDR
+//https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+vec3 ACESFilm(vec3 x)
 {
-    if (p.x < 0) return true;
-    if (p.y < 0) return true;
-    if (p.x >= MAP_WIDTH) return true;
-    if (p.y >= MAP_WIDTH) return true;
-    return false;
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x*(a*x + b)) / (x*(c*x + d) + e), 0.0f, 1.0f);
 }
 
-// https://learnwebgl.brown37.net/09_lights/lights_attenuation.html
-float calc_attenuation(float d, float c1, float c2)
+vec3 LessThan(vec3 f, float value)
 {
-    return clamp(1.0 / (1.0 + c1*d + c1*d*d), 0.0, 1.0);
+    return vec3(
+        (f.x < value) ? 1.0f : 0.0f,
+        (f.y < value) ? 1.0f : 0.0f,
+        (f.z < value) ? 1.0f : 0.0f);
 }
 
-float calc_attenuation_simple(float d)
+vec3 LinearToSRGB(vec3 rgb)
 {
-    return clamp(1.0 / (d*d), 0.0, 1.0);
+    rgb = clamp(rgb, 0.0f, 1.0f);
+    
+    return mix(
+        pow(rgb * 1.055f, vec3(1.f / 2.4f)) - 0.055f,
+        rgb * 12.92f,
+        LessThan(rgb, 0.0031308f)
+    );
 }
 
 void main() 
 {
-    ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    
-    // generate ray
-    vec2 jitter = rnd_unit_vec2(vec2(samples, samples)) * 1.0;
-    vec2 origin = vec2(uv) + jitter;
-    vec2 seed = uv + hash(vec2(samples, samples));
-    vec2 dir = rnd_unit_vec2(seed);
-    
-    float totalDist = 0.0;
-    int steps = 0;
-    bool hit = false;
-    
-    for (int i = 0; i < MAX_STEPS; i++) 
-    {
-        vec2 pos = origin + dir * totalDist;
-        ivec2 posInt = ivec2(pos);
-        
-        if(out_of_bound(posInt))
-            break;
+    vec2 uv = gl_GlobalInvocationID.xy;
+    uint idx = getIdx(uv);
 
-        float d = getMap(posInt);
-        
-        // Hit
-        if (d < EPSILON) 
-        {
-            hit = true;
-            steps = i;
-            break;
-        }
-        
-        totalDist += d;
-        if (totalDist > INF) 
-            break;
-    }
-    
-    vec3 contribution = vec3(0);
-    float lightIntensity = 1;
+    vec3 col = sceneGiBuffer[idx];
+    col = ACESFilm(col);
+    col = LinearToSRGB(col);
 
-    if(hit)
-    {
-        contribution = lightIntensity * vec3(calc_attenuation(totalDist, 1./MAP_WIDTH, 1./MAP_WIDTH));
-    }
-    // vec3 sampleColor = vec3(hash3(vec3(uv.x, uv.y, samples)));
-    // contribution *= sampleColor;
-
-    if(samples > 0)
-    {
-        contribution = (vec3(contribution) + (getGiB(uv) * float(samples-1))) / float(samples);
-    }
-
-    atomicAdd(genRayCount, 1);
-    setGiA(uv, contribution);
+    finalPassBuffer[idx] = col;
 }

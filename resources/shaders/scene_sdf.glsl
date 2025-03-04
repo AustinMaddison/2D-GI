@@ -1,6 +1,27 @@
 #version 430
 
-#define MAP_WIDTH 768 // multiple of 16
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, binding = 1) readonly buffer sceneMaskLayout
+{
+    float sceneMaskBuffer[];   
+};
+
+layout(std430, binding = 2) writeonly buffer sceneSdfLayout
+{
+    float sceneSdfBuffer[];   
+};
+
+in uvec3 gl_NumWorkGroups;
+in uvec3 gl_WorkGroupID;
+in uvec3 gl_LocalInvocationID;
+in uvec3 gl_GlobalInvocationID;
+in uint  gl_LocalInvocationIndex;
+
+uniform vec2 resolution;
+uniform uint samples;
+
+#define getIdx(uv) (uv.x)+resolution*(uv.y)
 
 // SDF Functions
 // source: https://iquilezles.org/articles/distfunctions2d/
@@ -49,12 +70,6 @@ float smin( float a, float b, float k )
     float g = 0.5*(x+sqrt(x*x+1.0));
     return b - k * g;
 }
-
-layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-
-layout(std430, binding = 1) writeonly restrict buffer mapLayout {
-    float mapBufferDest[];   
-};
 
 float rand(vec2 co)
 {

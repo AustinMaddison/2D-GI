@@ -1,39 +1,47 @@
 #version 430
 
-#define MAP_WIDTH 768 // multiple of 16
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, binding = 1) readonly buffer sceneColorLayout 
+{
+    vec3 sceneColorBuffer[];   
+};
+
+layout(std430, binding = 2) readonly buffer sceneSdfLayout
+{
+    vec3 sceneSdfBuffer[];
+};
+
+layout(std430, binding = 3) readonly buffer sceneNormalsLayout
+{
+    vec3 sceneNormalsBuffer[];
+};
+
+layout(std430, binding = 4) writeonly buffer sceneGiALayout 
+{
+    vec3 sceneGiBufferA[];   
+};
+
+layout(std430, binding = 5) readonly buffer sceneGiALayout 
+{
+    vec3 sceneGiBufferB[];   
+};
+
+in uvec3 gl_NumWorkGroups;
+in uvec3 gl_WorkGroupID;
+in uvec3 gl_LocalInvocationID;
+in uvec3 gl_GlobalInvocationID;
+in uint  gl_LocalInvocationIndex;
+
+uniform ivec2 resolution;
+uniform uint samplesCurr;
+
 #define INF 1e6
 #define PI 3.14159265359
 #define EPSILON 0.01
 #define MAX_STEPS 100
 
-layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-
-layout(std430, binding = 1) buffer mapLayout
-{
-    float mapBuffer[];
-};
-
-layout(std430, binding = 2) buffer generatedRayCountLayout 
-{
-    uint genRayCount;   
-};
-
-layout(std430, binding = 3) writeonly buffer giALayout 
-{
-    vec3 giBufferA[];   
-};
-
-layout(std430, binding = 4) readonly buffer giBLayout 
-{
-    vec3 giBufferB[];   
-};
-
-uniform uint samples;
-
-#define getMap(uv) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)]
-#define setGiA(uv, value) giBufferA[(uv.x) + MAP_WIDTH*(uv.y)].rgb = value
-#define getGiB(uv) giBufferB[(uv.x) + MAP_WIDTH*(uv.y)].rgb 
-#define setMap(uv, value) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)] = value
+#define getIdx(uv) (uv.x)+resolution*(uv.y)
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
@@ -56,8 +64,8 @@ bool out_of_bound(ivec2 p)
 {
     if (p.x < 0) return true;
     if (p.y < 0) return true;
-    if (p.x >= MAP_WIDTH) return true;
-    if (p.y >= MAP_WIDTH) return true;
+    if (p.x >= resolution.x) return true;
+    if (p.y >= resolution.y) return true;
     return false;
 }
 
@@ -77,9 +85,9 @@ void main()
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     
     // generate ray
-    vec2 jitter = rnd_unit_vec2(vec2(samples, samples)) * 1.0;
+    vec2 jitter = rnd_unit_vec2(vec2(samplesCurr, samplesCurr)) * 1.0;
     vec2 origin = vec2(uv) + jitter;
-    vec2 seed = uv + hash(vec2(samples, samples));
+    vec2 seed = uv + hash(vec2(samplesCurr, samplesCurr));
     vec2 dir = rnd_unit_vec2(seed);
     
     float totalDist = 0.0;
@@ -89,12 +97,11 @@ void main()
     for (int i = 0; i < MAX_STEPS; i++) 
     {
         vec2 pos = origin + dir * totalDist;
-        ivec2 posInt = ivec2(pos);
         
-        if(out_of_bound(posInt))
+        if(out_of_bound(pos))
             break;
 
-        float d = getMap(posInt);
+        float d = sceneSdfBuffer[getIdx(pos)];
         
         // Hit
         if (d < EPSILON) 
@@ -114,14 +121,14 @@ void main()
 
     if(hit)
     {
-        contribution = lightIntensity * vec3(calc_attenuation(totalDist, 1./MAP_WIDTH, 1./MAP_WIDTH));
+        contribution = lightIntensity * vec3(calc_attenuation(totalDist, 1./resolution.x, 1./resolution.x));
     }
-    // vec3 sampleColor = vec3(hash3(vec3(uv.x, uv.y, samples)));
+    // vec3 sampleColor = vec3(hash3(vec3(uv.x, uv.y, samplesCurr)));
     // contribution *= sampleColor;
 
-    if(samples > 0)
+    if(samplesCurr > 0)
     {
-        contribution = (vec3(contribution) + (getGiB(uv) * float(samples-1))) / float(samples);
+        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);
     }
 
     atomicAdd(genRayCount, 1);
