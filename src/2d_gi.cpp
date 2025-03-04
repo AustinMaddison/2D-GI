@@ -31,66 +31,204 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define MAP_WIDTH 768
-#define SAMPLES_MAX 1024
+#define DEFAULT_WIDTH 720
+#define DEFUALT_HEIGHT 720
 
+#define SAMPLES_MAX 1024
 #define SNAPSHOT 1023
 
-typedef std::map<char, int> UniformMap;
+std::map<uint, uint> resolutionUniformLocations;
 
-// Program main entry point
-//------------------------------------------------------------------------------------
-int main(void)
+enum RenderType {
+    RAYTRACE,
+    RADIENCE_PROBES,
+    RADIENCE_CASCADES
+};
+
+enum RenderStatus {
+    RUNNING,
+    PAUSED,
+    FINISHED
+};
+
+typedef struct {
+    RenderType type;
+    RenderStatus status;
+    uint samplesCurr;
+    uint samplesMax;
+    float timeInitial;
+    float timeElapsed;
+
+    int resolution_width;
+    int resolution_height;
+    Vector2 mousePos;
+
+    float frameTime; // ms
+    float fps; // frames per second
+    float rps; // rays per second
+
+    float distClosestSurface;
+
+    uint sdfSceneProgram;
+    uint giRayTraceProgram;
+    uint giRadienceProbesProgram;
+    uint giRadienceCascadesProgram;
+    uint normalSceneProgram;
+    uint compositeProgram;
+    uint postProcessProgram;
+
+    Shader finalPassShader;
+
+    uint ssboSceneColor;
+    uint ssboSceneMask;
+    uint ssboSceneSdf;
+    uint ssboGiMapA;
+    uint ssboGiMapB;
+    uint ssboPostProcess;
+
+    std::map<uint, uint> sampleCurrUniformLocs;
+    std::map<uint, uint> resolutionUniformLocs;
+
+    Texture textureOut
+} AppState;
+
+void CreateAppState(AppState *state)
 {
-    // Resources
-    /* -------------------------------------------------------------------------- */
-	SearchAndSetResourceDir("resources");
-
-    // Initialization
-    //--------------------------------------------------------------------------------------
-	InitWindow(MAP_WIDTH, MAP_WIDTH, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
-    const Vector2 resolution = { MAP_WIDTH, MAP_WIDTH };
-	GuiLoadStyle("styles/style_darker.rgs");
+    SearchAndSetResourceDir("resources");
+    GuiLoadStyle("styles/style_darker.rgs");
     HideCursor();
-    // SetTargetFPS(60);
+
+    state->type = RAYTRACE;
+    state->status = RUNNING;
+    state->samplesCurr = 0;
+    state->samplesMax = SAMPLES_MAX;
+    state->timeInitial = GetTime();
+    state->timeElapsed = 0;
+
+    state->resolution_width = GetScreenWidth();
+    state->resolution_height = GetScreenHeight();
+
+    state->mousePos = Vector2({0, 0});
+
+    state->frameTime = 0;
+    state->fps = 0;
+    state->distClosestSurface = 0;
+
+    CreateRenderPipeline(state);
+}
+
+void RestartRenderer(AppState *state)
+{
+    state->samplesCurr = 0;
+    state->samplesMax = SAMPLES_MAX;
+    state->timeInitial = GetTime();
+    state->timeElapsed = 0;
+
+    DeleteRenderPipeline(state);
+    CreateRenderPipeline(state);
+}
+
+void UpdateState(AppState *state)
+{
+    if (IsWindowResized())
+    {
+        RestartRenderer(state);
+    }
+
+     state->samplesCurr++;
+     state->timeElapsed = GetTime() - state->timeInitial;
+
+     state->mousePos = GetMousePosition();
+
+     state->frameTime = GetFrameTime();
+
+     rlReadShaderBuffer(state->ssboSceneSdf, &state->distClosestSurface, sizeof(float), (GetMouseX() + GetMouseY()) * sizeof(float));
+}
+
+void CreateRenderPipeline(AppState *state)
+{
+    /* --------------------------------- SHADER --------------------------------- */
+    char *shaderCode;
+    uint compiledShader;
+    
+    shaderCode = LoadFileText("shaders/sdf_scene.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->sdfSceneProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    shaderCode = LoadFileText("shaders/normal_scene.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->normalSceneProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    // GI 
+    shaderCode = LoadFileText("shaders/gi_raytrace.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->giRayTraceProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    shaderCode = LoadFileText("shaders/gi_raytrace.glsl"); // TODO: change
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->giRadienceProbesProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    shaderCode = LoadFileText("shaders/gi_raytrace.glsl"); // TODO: change
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->giRadienceCascadesProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    shaderCode = LoadFileText("shaders/post_process.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->postProcessProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
+
+    state->finalPassShader = LoadShader(NULL, "shaders/final_pass.frag");
+
+
+    for(auto program : {state->giRayTraceProgram, state->giRayTraceProgram, state->giRayTraceProgram})
+    {
+        state->sampleCurrUniformLocs[program] = rlGetLocationUniform(state->giRayTraceProgram, "samplesCurr");
+        state->resolutionUniformLoc = GetShaderLocation(sceneRenderShader, "resolution");
+    }
 
 
 
     
-    /* -------------------------------------------------------------------------- */
-    /*                               Compute Shaders                              */
-    /* -------------------------------------------------------------------------- */
-    char *sceneShaderCode = LoadFileText("shaders/scene_map.glsl");
-    unsigned int sceneShader = rlCompileShader(sceneShaderCode, RL_COMPUTE_SHADER);
-    unsigned int sceneProgram = rlLoadComputeShaderProgram(sceneShader);
-    UnloadFileText(sceneShaderCode);
 
-    char *raytraceGiShaderCode = LoadFileText("shaders/raytrace_gi.glsl");
-    unsigned int raytraceGiShader = rlCompileShader(raytraceGiShaderCode, RL_COMPUTE_SHADER);
-    unsigned int raytraceGiProgram = rlLoadComputeShaderProgram(raytraceGiShader);
-    UnloadFileText(raytraceGiShaderCode);
+    /* ---------------------------------- SSBO ---------------------------------- */
+    uint size = state->resolution_width * state->resolution_height;
+    state->ssboSceneColor = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
+    state->ssboSceneMask = rlLoadShaderBuffer(size*sizeof(float), NULL, RL_DYNAMIC_COPY);
+    state->ssboSceneSdf = rlLoadShaderBuffer(size*sizeof(float), NULL, RL_DYNAMIC_COPY);
+    state->ssboGiMapA = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY); 
+    state->ssboGiMapB = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY); 
+    state->ssboPostProcess = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
 
-    // buffer for compute shaders
-    unsigned int ssboSceneMap = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(float), NULL, RL_DYNAMIC_COPY);
-    unsigned int ssboGiMapA = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
-    unsigned int ssboGiMapB = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
-    unsigned int ssboGenRayCount = rlLoadShaderBuffer(MAP_WIDTH*MAP_WIDTH*sizeof(uint), NULL, RL_DYNAMIC_COPY);
+}
+
+void DeleteRenderPipeline(AppState *state)
+{
+    
+}
+
+AppState state;
+
+int main(void)
+{
+
+	InitWindow(state.resolution_width, state.resolution_height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+    CreateAppState(&state);
 
     /* -------------------------------------------------------------------------- */
     /*                           Output Fragment Shader                           */
     /* -------------------------------------------------------------------------- */
-    Shader sceneRenderShader = LoadShader(NULL, "shaders/scene_map_render.glsl");
 
-    int resUniformLoc = GetShaderLocation(sceneRenderShader, "resolution");
 
-    int samplesUniformLoc = rlGetLocationUniform(raytraceGiProgram, "samples");
-    
     // Just to apply fragment shader for ouput
-    Image whiteImage = GenImageColor(MAP_WIDTH, MAP_WIDTH, WHITE);
+    Image whiteImage = GenImageColor(MAP_WIDTH, MAP_WIDTH, MAGENTA);
     Texture outputTex = LoadTextureFromImage(whiteImage);
     UnloadImage(whiteImage);
 
-    
 
     //--------------------------------------------------------------------------------------
     
@@ -109,10 +247,10 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())
     {
+
+
         // Update
-        //----------------------------------------------------------------------------------
         // WaitTime(1);
-        // if(samples < SAMPLES_MAX && GetTime()-time > 0.1)
         if(samples < SAMPLES_MAX)
         {
             time = GetTime();
@@ -146,22 +284,8 @@ int main(void)
             EndShaderMode();
 
 
-            std::vector<float> vals;
-            if(samples == 256)
-            {
-                float val = 0;
-                for(int i = 0; i < MAP_WIDTH; i++)
-                {
-                    rlReadShaderBuffer(ssboGiMapA, &val, sizeof(float), (i + i * MAP_WIDTH) * sizeof(float));
-                    vals.push_back(val);
-                }
 
-                for(auto x : vals) std::cout << x << ", ";
-                std::cout << '\n';
-
-            }
-
-#ifdef SNAPSHOT
+            #ifdef SNAPSHOT
             if(samples == SNAPSHOT)
             {
                 RenderTexture2D renderTarget = LoadRenderTexture(resolution.x, resolution.y);
@@ -180,10 +304,9 @@ int main(void)
             
                 UnloadRenderTexture(renderTarget);
             }
-#endif // SNAPSHOT
+            #endif // SNAPSHOT
 
-
-
+            
             if(IsCursorOnScreen())
             {
                 rlReadShaderBuffer(ssboSceneMap, &distClosestSurface, sizeof(float), (GetMouseX() + GetMouseY() * MAP_WIDTH) * sizeof(float));
@@ -192,6 +315,7 @@ int main(void)
                 DrawCircle(GetMouseX(), GetMouseY(), 2, {distNorm, 0, 0, 255});
             }
 
+            Vector2 anchor = Vector2({0,0});
             DrawRectangle(0, 0, 314, 90, {0, 0, 0, 200});
             DrawText(TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription), 10, 10, 10, Color({255, 255, 255, 100}));
             DrawText(TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()), 10, 30, 10, Color({255, 255, 255, 255}));

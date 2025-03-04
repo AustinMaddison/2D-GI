@@ -1,0 +1,14 @@
+            // std::vector<float> vals;
+            // if(samples == 256)
+            // {
+            //     float val = 0;
+            //     for(int i = 0; i < MAP_WIDTH; i++)
+            //     {
+            //         rlReadShaderBuffer(ssboGiMapA, &val, sizeof(float), (i + i * MAP_WIDTH) * sizeof(float));
+            //         vals.push_back(val);
+            //     }
+
+            //     for(auto x : vals) std::cout << x << ", ";
+            //     std::cout << '\n';
+
+            // }

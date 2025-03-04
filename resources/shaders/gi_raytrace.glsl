@@ -2,6 +2,7 @@
 
 #define MAP_WIDTH 768 // multiple of 16
 #define INF 1e6
+#define PI 3.14159265359
 #define EPSILON 0.01
 #define MAX_STEPS 100
 
@@ -27,10 +28,7 @@ layout(std430, binding = 4) readonly buffer giBLayout
     vec3 giBufferB[];   
 };
 
-
 uniform uint samples;
-
-
 
 #define getMap(uv) mapBuffer[(uv.x) + MAP_WIDTH*(uv.y)]
 #define setGiA(uv, value) giBufferA[(uv.x) + MAP_WIDTH*(uv.y)].rgb = value
@@ -39,39 +37,19 @@ uniform uint samples;
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
-float hash(float a, float b) {
-    int x = FK(a); int y = FK(b);
+float hash(vec2 p) {
+    int x = FK(p.x); int y = FK(p.y);
     return float((x*x+y)*(y*y-x)+x)/2.14e9;
 }
 
-float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+float hash01(vec2 p) {
+    return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
 }
 
-float hash(vec3 p) {
-    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
-}
-
-vec2 hash2(vec2 p) {
-    return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
-}
-
-vec3 hash3(vec3 p) {
-    return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)))) * 43758.5453);
-}
-
-vec2 random2(vec2 uv)
+vec2 rnd_unit_vec2(vec2 p)
 {
-    float h1 = hash(uv.x, uv.y);
-    float h2 = hash(h1, uv.x + uv.y);
-    return vec2(h1,h2);
-}
-
-vec2 random2(float x)
-{
-    float h1 = hash(x, x*x);
-    float h2 = hash(h1, x);
-    return vec2(h1,h2);
+    float theta = hash01(p) * 2*PI;
+    return vec2(cos(theta), sin(theta));
 }
 
 bool out_of_bound(ivec2 p)
@@ -99,9 +77,10 @@ void main()
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     
     // generate ray
-    vec2 jitter = normalize(random2(float(samples))) * 1.;
+    vec2 jitter = rnd_unit_vec2(vec2(samples, samples)) * 1.0;
     vec2 origin = vec2(uv) + jitter;
-    vec2 dir = normalize(random2(vec2(uv) + random2(float(samples))));
+    vec2 seed = uv + hash(vec2(samples, samples));
+    vec2 dir = rnd_unit_vec2(seed);
     
     float totalDist = 0.0;
     int steps = 0;
