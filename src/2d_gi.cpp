@@ -33,8 +33,10 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define DEFAULT_WIDTH 480
-#define DEFUALT_HEIGHT 480
+#define DEFAULT_WIDTH 768
+#define DEFUALT_HEIGHT 768
+#define COMPUTE_SHADER_DISPATCH_X 16
+#define COMPUTE_SHADER_DISPATCH_Y 16
 
 #define DEFAULT_SAMPLES_MAX 1024
 
@@ -301,19 +303,22 @@ void RunRenderPipeline(AppState *state)
 
     /* ------------------------ Dispatch compute shaders ------------------------ */
     
-    // Generate SDF Map
-    rlEnableShader(state->sceneSdfProgram);
-    rlBindShaderBuffer(state->sceneMaskSSBO, 1);
-    rlBindShaderBuffer(state->sceneSdfSSBO, 2);
-    rlComputeShaderDispatch(state->width/16, state->height/16, 1);
-    rlDisableShader();
+    if(state->samplesCurr == 0)
+    {
+        // Generate SDF Map
+        rlEnableShader(state->sceneSdfProgram);
+        rlBindShaderBuffer(state->sceneMaskSSBO, 1);
+        rlBindShaderBuffer(state->sceneSdfSSBO, 2);
+        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+        rlDisableShader();
 
-    // Compute Normals
-    // rlEnableShader(state->sceneNormalsProgram);
-    // rlBindShaderBuffer(state->sceneSdfSSBO, 1);
-    // rlBindShaderBuffer(state->sceneNormalsSSBO, 2);
-    // rlComputeShaderDispatch(state->width/16, state->height/16, 1);
-    // rlDisableShader();
+        // Compute Normals
+        // rlEnableShader(state->sceneNormalsProgram);
+        // rlBindShaderBuffer(state->sceneSdfSSBO, 1);
+        // rlBindShaderBuffer(state->sceneNormalsSSBO, 2);
+        // rlComputeShaderDispatch(state->width/16, state->height/16, 1);
+        // rlDisableShader();
+    }
 
     uint giProgramChosen;
     switch (state->rendererType)
@@ -338,7 +343,7 @@ void RunRenderPipeline(AppState *state)
         rlBindShaderBuffer(state->sceneNormalsSSBO, 3);
         rlBindShaderBuffer(state->sceneGiSSBO_A, 4);
         rlBindShaderBuffer(state->sceneGiSSBO_B, 5);
-        rlComputeShaderDispatch(state->width/16, state->height/16, 1);
+        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
     std::swap(state->sceneGiSSBO_A, state->sceneGiSSBO_B); // ping pong accumalation.
 
@@ -347,7 +352,7 @@ void RunRenderPipeline(AppState *state)
         rlBindShaderBuffer(state->sceneColorSSBO, 1);
         rlBindShaderBuffer(state->sceneGiSSBO_A, 2);
         rlBindShaderBuffer(state->finalPassSSBO, 3);
-        rlComputeShaderDispatch(state->width/16, state->height/16, 1);
+        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
 }
 
@@ -358,7 +363,6 @@ void UpdateFrameBuffer(AppState *state)
         rlBindShaderBuffer(state->sceneSdfSSBO, 2);
         rlLoadDrawQuad();
         rlDrawCall();
-        // DrawTexture(state->outputTex, 0, 0, WHITE);
     rlDisableShader();
 }
 
@@ -371,15 +375,19 @@ void UpdateGui(AppState *state)
         DrawCircleLines(GetMouseX(), GetMouseY(), state->distClosestSurface, RED);
         DrawCircle(GetMouseX(), GetMouseY(), 2, {distNorm, distNorm, distNorm, 255});
     }
+    Vector2 anchor = Vector2({10, 10});
 
-    Vector2 anchor = Vector2({0,0});
-    DrawRectangle(0, 0, 314, 90, {0, 0, 0, 200});
-    DrawText(TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription), 10, 10, 10, Color({255, 255, 255, 100}));
-    DrawText(TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()), 10, 30, 10, Color({255, 255, 255, 255}));
-
-    DrawText(TextFormat("%s %f", "Distance To Closest Surface", state->distClosestSurface), 10, 50, 10, Color({255, 255, 255, 255}));
-
-    DrawText(TextFormat("%s %d", "FPS", GetFPS()), 10, 70, 10, Color({255, 255, 255, 255}));
+    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 100);
+    GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, 100);
+    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 314, 180}, "Info Panel");
+    anchor.y += 20;
+    GuiLabel((Rectangle){anchor.x, anchor.y, 300, 20}, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 40, 300, 20}, TextFormat("%s %f", "Distance To Closest Surface", state->distClosestSurface));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 60, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 80, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 100, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 120, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
 
     // DrawRectangle(0, GetScreenHeight()-12, GetScreenWidth(), 12, {0, 0, 0, 200});
 
