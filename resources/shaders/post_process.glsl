@@ -2,14 +2,14 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer sceneGiLayout
-{
-    vec3 sceneGiBuffer[];
-};
-
-layout(std430, binding = 2) readonly buffer sceneColorLayout 
+layout(std430, binding = 1) readonly buffer sceneColorLayout 
 {
     vec3 sceneColorBuffer[];   
+};
+
+layout(std430, binding = 2) readonly buffer sceneGiLayout
+{
+    vec3 sceneGiBuffer[];
 };
 
 layout(std430, binding = 3) writeonly buffer finalPassLayout 
@@ -17,16 +17,10 @@ layout(std430, binding = 3) writeonly buffer finalPassLayout
     vec3 finalPassBuffer[];   
 };
 
-in uvec3 gl_NumWorkGroups;
-in uvec3 gl_WorkGroupID;
-in uvec3 gl_LocalInvocationID;
-in uvec3 gl_GlobalInvocationID;
-in uint  gl_LocalInvocationIndex;
-
 uniform ivec2 resolution;
 uniform uint samples;
 
-#define getIdx(uv) (uv.x)+resolution*(uv.y)
+#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
 vec3 gammaCorrect(vec3 color, float gamma)
 {
@@ -67,7 +61,7 @@ vec3 LinearToSRGB(vec3 rgb)
 void main() 
 {
     vec2 uv = gl_GlobalInvocationID.xy;
-    uint idx = getIdx(uv);
+    uint idx = getIdx(ivec2(uv));
 
     vec3 col = sceneGiBuffer[idx];
     col = ACESFilm(col);

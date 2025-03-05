@@ -12,16 +12,10 @@ layout(std430, binding = 2) writeonly buffer sceneSdfLayout
     float sceneSdfBuffer[];   
 };
 
-in uvec3 gl_NumWorkGroups;
-in uvec3 gl_WorkGroupID;
-in uvec3 gl_LocalInvocationID;
-in uvec3 gl_GlobalInvocationID;
-in uint  gl_LocalInvocationIndex;
-
-uniform vec2 resolution;
+uniform ivec2 resolution;
 uniform uint samples;
 
-#define getIdx(uv) (uv.x)+resolution*(uv.y)
+#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
 // SDF Functions
 // source: https://iquilezles.org/articles/distfunctions2d/
@@ -76,7 +70,6 @@ float rand(vec2 co)
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 #define INF 1e6
-#define setMap(uv, value) mapBufferDest[(uv.x) + MAP_WIDTH*(uv.y)] = value
 
 float sdf_map(vec2 uv)
 {
@@ -94,7 +87,7 @@ float sdf_map(vec2 uv)
     float currentRadius = radius;
 
     for (float i = 0.0; i < 100.0; i++) {
-        vec2 center = vec2(MAP_WIDTH / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
+        vec2 center = vec2(resolution.x / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
         map = min(map, sdCircle(uv - center, radius));
         angle += angleIncrement;
         currentRadius += radiusIncrement;
@@ -105,7 +98,7 @@ float sdf_map(vec2 uv)
     float wallLength = 200.0;
     float numWalls = 10.0;
     for (float i = 0.0; i < numWalls; i++) {
-        vec2 start = vec2(rand(vec2(i, 0.0)) * MAP_WIDTH, rand(vec2(i, 1.0)) * MAP_WIDTH);
+        vec2 start = vec2(rand(vec2(i, 0.0)) * resolution.x, rand(vec2(i, 1.0)) * resolution.x);
         vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
         map = min(map, sdSegment(uv+vec2(100.), start, end) - wallThickness);
     }
@@ -116,6 +109,6 @@ float sdf_map(vec2 uv)
 void main()
 {
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    float map = sdf_map(uv);
-    setMap(uv, map);
+    sceneSdfBuffer[getIdx(uv)] = sdf_map(uv);
+    // sceneSdfBuffer[getIdx(uv)] = 1.;
 }

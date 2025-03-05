@@ -9,7 +9,7 @@ layout(std430, binding = 1) readonly buffer sceneColorLayout
 
 layout(std430, binding = 2) readonly buffer sceneSdfLayout
 {
-    vec3 sceneSdfBuffer[];
+    float sceneSdfBuffer[];
 };
 
 layout(std430, binding = 3) readonly buffer sceneNormalsLayout
@@ -22,16 +22,10 @@ layout(std430, binding = 4) writeonly buffer sceneGiALayout
     vec3 sceneGiBufferA[];   
 };
 
-layout(std430, binding = 5) readonly buffer sceneGiALayout 
+layout(std430, binding = 5) readonly buffer sceneGiBLayout 
 {
     vec3 sceneGiBufferB[];   
 };
-
-in uvec3 gl_NumWorkGroups;
-in uvec3 gl_WorkGroupID;
-in uvec3 gl_LocalInvocationID;
-in uvec3 gl_GlobalInvocationID;
-in uint  gl_LocalInvocationIndex;
 
 uniform ivec2 resolution;
 uniform uint samplesCurr;
@@ -41,7 +35,7 @@ uniform uint samplesCurr;
 #define EPSILON 0.01
 #define MAX_STEPS 100
 
-#define getIdx(uv) (uv.x)+resolution*(uv.y)
+#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
@@ -98,10 +92,10 @@ void main()
     {
         vec2 pos = origin + dir * totalDist;
         
-        if(out_of_bound(pos))
+        if(out_of_bound(ivec2(pos)))
             break;
 
-        float d = sceneSdfBuffer[getIdx(pos)];
+        float d = sceneSdfBuffer[getIdx(ivec2(pos))];
         
         // Hit
         if (d < EPSILON) 
@@ -121,7 +115,7 @@ void main()
 
     if(hit)
     {
-        contribution = lightIntensity * vec3(calc_attenuation(totalDist, 1./resolution.x, 1./resolution.x));
+        contribution = lightIntensity * vec3(calc_attenuation(totalDist, 1./float(resolution.x), 1./float(resolution.x)));
     }
     // vec3 sampleColor = vec3(hash3(vec3(uv.x, uv.y, samplesCurr)));
     // contribution *= sampleColor;
@@ -131,6 +125,6 @@ void main()
         contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);
     }
 
-    atomicAdd(genRayCount, 1);
-    setGiA(uv, contribution);
+    sceneGiBufferA[getIdx(uv)] = contribution;
+    // sceneGiBufferA[getIdx(uv)] = vec3(1.);
 }

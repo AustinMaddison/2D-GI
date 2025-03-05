@@ -14,8 +14,11 @@ layout(std430, binding = 2) writeonly buffer sceneNormalsLayout
 
 uniform ivec2 resolution;
 
+#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+
+
 void main() 
 {
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    sceneSdfBuffer[getIdx(uv)] = vec3(1.0);
+    sceneNormalsBuffer[getIdx(uv)] = vec3(1.0);
 }
