@@ -1,6 +1,6 @@
 #define TOOL_NAME               "2D Global Illumination"
 #define TOOL_SHORT_NAME         "2D-GI"
-#define TOOL_VERSION            "1.0"
+#define TOOL_VERSION            "2.0"
 #define TOOL_DESCRIPTION        "GPU Benchmark Render Engine"
 #define TOOL_DESCRIPTION_BREAK  ""
 #define TOOL_RELEASE_DATE       "Month.Date"
@@ -33,12 +33,10 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define DEFAULT_WIDTH 768
-#define DEFUALT_HEIGHT 768
+#define DEFAULT_WIDTH 480
+#define DEFUALT_HEIGHT 480
 
-#define SAMPLES_MAX 1024
-#define SNAPSHOT 1023
-
+#define DEFAULT_SAMPLES_MAX 1024
 
 enum GiRendererType {
     RAYTRACE,
@@ -101,7 +99,7 @@ void CreateAppState(AppState *state)
     state->rendererType = RAYTRACE;
     state->mode = RUNNING;
     state->samplesCurr = 0;
-    state->samplesMax = SAMPLES_MAX;
+    state->samplesMax = DEFAULT_SAMPLES_MAX;
     state->timeInitial = GetTime();
     state->timeElapsed = 0;
 
@@ -231,7 +229,7 @@ void DeleteRenderPipeline(AppState *state)
 void RestartRenderer(AppState *state)
 {
     state->samplesCurr = 0;
-    state->samplesMax = SAMPLES_MAX;
+    state->samplesMax = state->samplesMax;
     state->timeInitial = GetTime();
     state->timeElapsed = 0;
 
@@ -258,10 +256,12 @@ void SaveImage(AppState *state)
         rlDisableShader();
     EndTextureMode();
 
-    Image img = LoadImageFromTexture(renderTexTarget.texture); 
-    ExportImage(img, TextFormat("/snapshots/snapshot_%i_%i_%03i.png",state->samplesCurr, state->samplesMax, GetTimeStamp()));  
+    Image img = LoadImageFromTexture(renderTexTarget.texture);
+    auto filename = TextFormat("snapshot_%i_%i_%s.png",state->samplesCurr, state->samplesMax, GetTimeStamp());
+    ExportImage(img, filename);  
     UnloadImage(img);  
 
+    TraceLog(LOG_INFO, "Image saved to %s", filename);
     UnloadRenderTexture(renderTexTarget);
 }
 
@@ -399,6 +399,14 @@ void UpdateInput(AppState *state)
         state->mode = RESTART;
     }
 
+    if(IsKeyPressed(KEY_F4))
+    {
+        if(state->mode == PAUSED)
+            state->mode = RUNNING;
+        else
+            state->mode = PAUSED;
+    }
+
     // if(IsKeyPressed(KEY_F1))
     // {
     //     state->rendererType = RAYTRACE;
@@ -417,11 +425,6 @@ void UpdateInput(AppState *state)
 
 void UpdateState(AppState *state)
 {
-    if(state->samplesCurr == state->samplesMax)
-    {
-        state->mode = FINISHED;
-    }
-
     switch (state->mode)
     {
     case Mode::RUNNING:
@@ -431,6 +434,7 @@ void UpdateState(AppState *state)
     break;
 
     case Mode::RESTART:
+        TraceLog(LOG_INFO, "Renderer restarted");
         RestartRenderer(state);
         state->mode = RUNNING;
     break;
@@ -448,6 +452,11 @@ void UpdateState(AppState *state)
     
     default:
         break;
+    }
+
+    if(state->samplesCurr == state->samplesMax)
+    {
+        state->mode = FINISHED;
     }
 
     state->frameTime = GetFrameTime();
