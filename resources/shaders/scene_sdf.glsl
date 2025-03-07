@@ -85,13 +85,30 @@ float sdf_map(vec2 uv)
     float angleIncrement = .1;
     float radiusIncrement = 10.0;
     float currentRadius = radius;
+    // vec2 center = vec2(resolution.x / 2.0);
 
     for (float i = 0.0; i < 100.0; i++) {
         vec2 center = vec2(resolution.x / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
-        map = min(map, sdCircle(uv - center, radius));
+
+        map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
         angle += angleIncrement;
         currentRadius += radiusIncrement;
+
     }
+    // vec2 center = vec2(resolution.x / 2.0);
+    // map = min(map, sdCircle(uv - center, 100.));
+
+
+
+    // float step_x = resolution.x / 60.;
+    // float step_y = resolution.y / 60.;
+
+    // for (float i = 0.0; i < 60.0; i++) {
+
+    //     vec2 p = vec2(step_x * i, step_y * i);
+    //     vec2 center = p;
+    //     map = min(map, sdCircle(uv - center, radius));
+    // }
 
     // random walls
     float wallThickness = 1.0;
@@ -102,6 +119,11 @@ float sdf_map(vec2 uv)
         vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
         map = min(map, sdSegment(uv+vec2(100.), start, end) - wallThickness);
     }
+
+    // map = min(map, sdSegment(uv, vec2(464., 82.), vec2(734., 342.)) - wallThickness);
+
+    // map = min(map, sdSegment(uv, vec2(487., 259.), vec2(624., 417.)) - wallThickness);
+
     
     return map;
 }

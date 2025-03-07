@@ -49,7 +49,7 @@ float hash01(vec2 p) {
     return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
 }
 
-vec2 rnd_unit_circle(vec2 p)
+vec2 rnd_unit_vec2(vec2 p)
 {
     float theta = hash01(p) * 2*PI;
     return vec2(cos(theta), sin(theta));
@@ -58,7 +58,7 @@ vec2 rnd_unit_circle(vec2 p)
 vec2 rnd_unit_half_circle(vec2 normal, vec2 p)
 {
     vec2 tangent = vec2(-normal.y, normal.x); 
-    float theta = (hash01(p) * PI) - PI*.5;
+    float theta = hash01(p) * PI;
     return cos(theta) * normal + sin(theta) * tangent;
 }
 
@@ -72,14 +72,14 @@ bool out_of_bound(ivec2 p)
 }
 
 // https://learnwebgl.brown37.net/09_lights/lights_attenuation.html
-float calc_attenuation(float d, float c1, float c2)
-{
-    return clamp(1.0 / (1.0 + c1*d + c1*d*d), 0.0, 1.0);
-}
+// float calc_attenuation(float d, float c1, float c2)
+// {
+//     return 1.0 / (1.0 + c1*d + c1*d*d);
+// }
 
 float calc_attenuation_simple(float d)
 {
-    return clamp(1.0 / (d*d), 0.0, 1.0);
+    return 1.0 / (d*d);
 }
 
 float sdCircle( vec2 p, float r )
@@ -92,10 +92,10 @@ void main()
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     
     // generate ray
-    vec2 jitter = rnd_unit_circle(vec2(samplesCurr, samplesCurr)) * 1.0;
+    vec2 jitter = rnd_unit_vec2(vec2(samplesCurr, samplesCurr)) * 1.0;
     vec2 origin = vec2(uv) + jitter;
     vec2 seed = uv + hash(vec2(samplesCurr, samplesCurr));
-    vec2 dir = rnd_unit_circle(seed);
+    vec2 dir = rnd_unit_vec2(seed);
     
     float totalDist = 0.0;
     vec3 contribution = vec3(0.0f);
@@ -112,6 +112,7 @@ void main()
             pos +=  dir * d;
 
             if(out_of_bound(ivec2(pos)))
+
                 break;
 
             // Hit
@@ -123,18 +124,31 @@ void main()
             
             totalDist += d;
             if (totalDist > INF) 
+
                 break;
         }
+
         if(hit)
         {
+            // vec3 color = sceneColorBuffer[getIdx(ivec2(pos))];
             vec3 color = vec3(1.);
-            vec2 normals = sceneNormalsBuffer[getIdx(ivec2(pos -dir *5.))];
-            float energy = calc_attenuation(totalDist/scale, 2., 10.);
+            vec2 normals = sceneNormalsBuffer[getIdx(ivec2(pos))];
+            float energy = calc_attenuation_simple(totalDist/scale);
 
             contribution += color * lightIntensity * energy;
             dir = rnd_unit_half_circle(normals, seed);
-            origin = pos + dir;
+            origin = pos + dir*EPSILON;
+
+            // Draw debug hit points.
+            // sceneGiBufferA[getIdx(uv)] = vec3(0., 0., 0.f);
+            // sceneGiBufferA[getIdx(ivec2(pos))] = vec3(1., 0., 0.f);
         }
+        else
+        {
+            contribution += vec3(0.5, 0., 0.);
+        }
+
+
     }
     
     if(samplesCurr > 0)

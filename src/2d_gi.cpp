@@ -33,12 +33,12 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define DEFAULT_WIDTH 768
-#define DEFUALT_HEIGHT 768
+#define DEFAULT_WIDTH 720
+#define DEFUALT_HEIGHT 720
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
-#define DEFAULT_SAMPLES_MAX 1024
+#define DEFAULT_SAMPLES_MAX 4096
 
 enum GiRendererType {
     RAYTRACE,
@@ -59,8 +59,8 @@ typedef struct {
     Mode mode;
     uint samplesCurr;
     uint samplesMax;
-    float timeInitial;
-    float timeElapsed;
+    double timeInitial;
+    double timeElapsed;
 
     int width;
     int height;
@@ -71,6 +71,7 @@ typedef struct {
     float rps; // rays per second
 
     float distClosestSurface;
+    Vector2 normals;
 
     uint sceneSdfProgram;
     uint giRayTraceProgram;
@@ -92,6 +93,7 @@ typedef struct {
 
     std::map<uint, uint> sampleCurrUniformLocs;
     std::map<uint, uint> resolutionUniformLocs;
+    std::map<uint, uint> mouseUniformLocs;
 
     Texture textureOut;
 } AppState;
@@ -113,6 +115,7 @@ void CreateAppState(AppState *state)
     state->frameTime = 0;
     state->fps = 0;
     state->distClosestSurface = 0;
+    state->normals = Vector2({0, 0});
 }
 
 void CreateRenderPipeline(AppState *state)
@@ -134,6 +137,9 @@ void CreateRenderPipeline(AppState *state)
     UnloadFileText(shaderCode);
 
     // Global Illumination
+    // shaderCode = LoadFileText("shaders/gi_raytrace_debug2.glsl");
+    // shaderCode = LoadFileText("shaders/gi_raytrace_debug.glsl");
+    // shaderCode = LoadFileText("shaders/gi_raytrace_debug_bounce.glsl");
     shaderCode = LoadFileText("shaders/gi_raytrace.glsl");
     compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
     state->giRayTraceProgram = rlLoadComputeShaderProgram(compiledShader);
@@ -182,6 +188,14 @@ void CreateRenderPipeline(AppState *state)
         state->resolutionUniformLocs[prog] = rlGetLocationUniform(prog, "resolution");
     }
 
+    programs = {
+        state->giRayTraceProgram,
+    };
+
+    for(auto prog : programs)
+    {
+        state->mouseUniformLocs[prog] = rlGetLocationUniform(prog, "mouse");
+    }
 
     programs = {
         state->giRayTraceProgram, 
@@ -199,7 +213,7 @@ void CreateRenderPipeline(AppState *state)
     state->sceneColorSSBO = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
     state->sceneMaskSSBO = rlLoadShaderBuffer(size*sizeof(float), NULL, RL_DYNAMIC_COPY);
     state->sceneSdfSSBO = rlLoadShaderBuffer(size*sizeof(float), NULL, RL_DYNAMIC_COPY);
-    state->sceneNormalsSSBO = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY); 
+    state->sceneNormalsSSBO = rlLoadShaderBuffer(size*sizeof(float)*2, NULL, RL_DYNAMIC_COPY); 
     state->sceneGiSSBO_A = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY); 
     state->sceneGiSSBO_B = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY); 
     state->finalPassSSBO = rlLoadShaderBuffer(size*sizeof(float)*4, NULL, RL_DYNAMIC_COPY);
@@ -289,6 +303,18 @@ void RunRenderPipeline(AppState *state)
     }
 
     programs = {
+        state->giRayTraceProgram
+    };
+
+    int data2[2] = {state->mousePos.x, state->mousePos.y};
+    for(auto prog : programs)
+    {
+        rlEnableShader(prog);
+        rlSetUniform(state->mouseUniformLocs[prog], data2, RL_SHADER_UNIFORM_IVEC2, 1);
+        rlDisableShader();
+    }
+
+    programs = {
         state->giRayTraceProgram, 
         state->giRadienceProbesProgram, 
         state->giRadienceCascadesProgram
@@ -313,11 +339,11 @@ void RunRenderPipeline(AppState *state)
         rlDisableShader();
 
         // Compute Normals
-        // rlEnableShader(state->sceneNormalsProgram);
-        // rlBindShaderBuffer(state->sceneSdfSSBO, 1);
-        // rlBindShaderBuffer(state->sceneNormalsSSBO, 2);
-        // rlComputeShaderDispatch(state->width/16, state->height/16, 1);
-        // rlDisableShader();
+        rlEnableShader(state->sceneNormalsProgram);
+        rlBindShaderBuffer(state->sceneSdfSSBO, 1);
+        rlBindShaderBuffer(state->sceneNormalsSSBO, 2);
+        rlComputeShaderDispatch(state->width/COMPUTE_SHADER_DISPATCH_X, state->height/COMPUTE_SHADER_DISPATCH_Y, 1);
+        rlDisableShader();
     }
 
     uint giProgramChosen;
@@ -371,6 +397,9 @@ void UpdateGui(AppState *state)
     if(IsCursorOnScreen())
     {
         rlReadShaderBuffer(state->sceneSdfSSBO, &state->distClosestSurface, sizeof(float), (GetMouseX() + GetMouseY() * state->width) * sizeof(float));
+        
+        rlReadShaderBuffer(state->sceneNormalsSSBO, (float*)&state->normals, sizeof(float)*2, (GetMouseX() + GetMouseY() * state->width) * sizeof(float));
+
         u_char distNorm = state->distClosestSurface/((float)state->width*0.5) * 255;
         DrawCircleLines(GetMouseX(), GetMouseY(), state->distClosestSurface, RED);
         DrawCircle(GetMouseX(), GetMouseY(), 2, {distNorm, distNorm, distNorm, 255});
@@ -379,15 +408,16 @@ void UpdateGui(AppState *state)
 
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 100);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, 100);
-    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 314, 180}, "Info Panel");
+    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 314, 200}, "Info Panel");
     anchor.y += 20;
     GuiLabel((Rectangle){anchor.x, anchor.y, 300, 20}, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     GuiLabel((Rectangle){anchor.x, anchor.y + 20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 40, 300, 20}, TextFormat("%s %f", "Distance To Closest Surface", state->distClosestSurface));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 40, 300, 20}, TextFormat("%s %f, %s %f %f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
     GuiLabel((Rectangle){anchor.x, anchor.y + 60, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
     GuiLabel((Rectangle){anchor.x, anchor.y + 80, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 100, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 120, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 100, 300, 20}, TextFormat("Render Time: %.2f",state->timeElapsed));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 120, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 140, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
 
     // DrawRectangle(0, GetScreenHeight()-12, GetScreenWidth(), 12, {0, 0, 0, 200});
 

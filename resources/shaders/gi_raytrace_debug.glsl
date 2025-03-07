@@ -28,13 +28,14 @@ layout(std430, binding = 5) readonly buffer sceneGiBLayout
 };
 
 uniform ivec2 resolution;
+uniform ivec2 mouse;
 uniform uint samplesCurr;
 
-#define INF 1e6
+#define INF 1e10
 #define PI 3.14159265359
 #define EPSILON 0.01
 #define MAX_STEPS 100
-#define MAX_BOUNCE 3
+#define MAX_BOUNCE 5
 
 #define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
@@ -49,7 +50,7 @@ float hash01(vec2 p) {
     return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
 }
 
-vec2 rnd_unit_circle(vec2 p)
+vec2 rnd_unit_vec2(vec2 p)
 {
     float theta = hash01(p) * 2*PI;
     return vec2(cos(theta), sin(theta));
@@ -87,25 +88,34 @@ float sdCircle( vec2 p, float r )
     return length(p) - r;
 }
 
+float sdSegment( in vec2 p, in vec2 a, in vec2 b )
+{
+    vec2 pa = p-a, ba = b-a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h );
+}
+
 void main() 
 {
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     
     // generate ray
-    vec2 jitter = rnd_unit_circle(vec2(samplesCurr, samplesCurr)) * 1.0;
-    vec2 origin = vec2(uv) + jitter;
-    vec2 seed = uv + hash(vec2(samplesCurr, samplesCurr));
-    vec2 dir = rnd_unit_circle(seed);
-    
+    vec2 origin = vec2(resolution.x/2., resolution.y/2.);
+    vec2 seed = origin + hash(vec2(samplesCurr, samplesCurr));
+    vec2 dir = rnd_unit_vec2(seed);
+
+    float lineSdf = 10E6;
+    float lineMissSdf = 10E6;
     float totalDist = 0.0;
-    vec3 contribution = vec3(0.0f);
-    float scale = resolution.x;
-    float lightIntensity = 0.33;
-    
+
+    //
     for (int b = 0; b < MAX_BOUNCE; b++)
     {
         bool hit = false;
         vec2 pos = origin;
+        // totalDist = 0;
+
+
         for (int i = 0; i < MAX_STEPS; i++) 
         {
             float d = sceneSdfBuffer[getIdx(ivec2(pos))];
@@ -125,24 +135,52 @@ void main()
             if (totalDist > INF) 
                 break;
         }
+
+        vec2 trace_pos = pos;
+        vec2 trace_origin = origin;
+
         if(hit)
         {
-            vec3 color = vec3(1.);
+            // vec3 color = sceneColorBuffer[getIdx(ivec2(pos))];
             vec2 normals = sceneNormalsBuffer[getIdx(ivec2(pos -dir *5.))];
-            float energy = calc_attenuation(totalDist/scale, 2., 10.);
 
-            contribution += color * lightIntensity * energy;
             dir = rnd_unit_half_circle(normals, seed);
             origin = pos + dir;
+
+            // trace_sdf = min(trace_sdf, sdCircle(vec2(uv)-p2, 2.));
+            // trace_sdf = min(trace_sdf, sdCircle(vec2(uv)-p2, 2.));
+
+            lineSdf = min(lineSdf, sdSegment(vec2(uv), trace_origin, trace_pos));
+            lineSdf = min(lineSdf,sdCircle(vec2(uv)-trace_origin, 2.));
+            lineSdf = min(lineSdf,sdCircle(vec2(uv)-trace_pos, 2.));
+            // Draw debug hit points.
+            // sceneGiBufferA[getIdx(uv)] = vec3(0., 0., 0.f);
+            // sceneGiBufferA[getIdx(ivec2(pos))] = vec3(1., 0., 0.f);
         }
-    }
-    
-    if(samplesCurr > 0)
-    {
-        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);
+        else {
+            lineMissSdf = min(lineMissSdf, sdSegment(vec2(uv), trace_origin, trace_pos));
+            lineMissSdf = min(lineMissSdf,sdCircle(vec2(uv)-trace_origin, 2.));
+            lineMissSdf = min(lineMissSdf,sdCircle(vec2(uv)-trace_pos, 2.));
+        }
+
+ 
     }
 
-    sceneGiBufferA[getIdx(uv)] = contribution;
+    lineSdf = smoothstep(1., 0., (lineSdf));
+    lineMissSdf = smoothstep(1., 0., (lineMissSdf));
+
+    float map = smoothstep(1., 0., (sceneSdfBuffer[getIdx(uv)]));
+    vec3 contribution = mix(vec3(0.5, 0.5, 0.5) * map, vec3(0.8,0.,0.), lineSdf);
+
+    contribution +=  vec3(1.)* lineMissSdf;
+    
+    // if(samplesCurr > 0)
+    // {
+    //     contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);
+    // }
+
+    sceneGiBufferA[getIdx(uv)] = + sceneGiBufferB[getIdx(uv)] + contribution;
+
     // sceneGiBufferA[getIdx(uv)] = vec3(sceneNormalsBuffer[getIdx(uv)], 0.);
     // sceneGiBufferA[getIdx(uv)] = vec3(1.0);
 }
