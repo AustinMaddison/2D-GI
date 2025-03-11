@@ -2,27 +2,23 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer sceneColorLayout 
-{
-    vec3 sceneColorBuffer[];   
-};
 
-layout(std430, binding = 2) readonly buffer sceneSdfLayout
+layout(std430, binding = 1) readonly buffer sceneSdfLayout
 {
     float sceneSdfBuffer[];
 };
 
-layout(std430, binding = 3) readonly buffer sceneNormalsLayout
+layout(std430, binding = 2) readonly buffer sceneNormalsLayout
 {
     vec2 sceneNormalsBuffer[];
 };
 
-layout(std430, binding = 4) writeonly buffer sceneGiALayout 
+layout(std430, binding = 3) writeonly buffer sceneGiALayout 
 {
     vec3 sceneGiBufferA[];   
 };
 
-layout(std430, binding = 5) readonly buffer sceneGiBLayout 
+layout(std430, binding = 4) readonly buffer sceneGiBLayout 
 {
     vec3 sceneGiBufferB[];   
 };
@@ -70,6 +66,7 @@ bool out_of_bound(ivec2 p)
     if (p.y >= resolution.y) return true;
     return false;
 }
+
 
 // https://learnwebgl.brown37.net/09_lights/lights_attenuation.html
 float calc_attenuation(float d, float c1, float c2)

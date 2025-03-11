@@ -2,17 +2,13 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer sceneColorLayout 
-{
-    vec3 sceneColorBuffer[];   
-};
 
-layout(std430, binding = 2) readonly buffer sceneGiLayout
+layout(std430, binding = 1) readonly buffer sceneGiLayout
 {
     vec3 sceneGiBuffer[];
 };
 
-layout(std430, binding = 3) writeonly buffer finalPassLayout 
+layout(std430, binding = 2) writeonly buffer finalPassLayout 
 {
     vec3 finalPassBuffer[];   
 };
@@ -64,8 +60,8 @@ void main()
     uint idx = getIdx(ivec2(uv));
 
     vec3 col = sceneGiBuffer[idx];
-    col = ACESFilm(col);
-    col = LinearToSRGB(col);
+    // col = ACESFilm(col);
+    // col = LinearToSRGB(col);
 
     finalPassBuffer[idx] = col;
 }

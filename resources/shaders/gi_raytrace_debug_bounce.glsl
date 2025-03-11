@@ -41,12 +41,14 @@ uniform uint samplesCurr;
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
-float hash(vec2 p) {
+float hash(vec2 p) 
+{
     int x = FK(p.x); int y = FK(p.y);
     return float((x*x+y)*(y*y-x)+x)/2.14e9;
 }
 
-float hash01(vec2 p) {
+float hash01(vec2 p) 
+{
     return fract(sin(dot(p.xy, vec2(12.9898,78.233)))*43758.5453123);
 }
 
