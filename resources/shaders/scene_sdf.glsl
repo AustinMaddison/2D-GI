@@ -2,16 +2,9 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer jfaLayout
-{
-    vec2 jfaBuffer[];
-};
-
-layout(std430, binding = 2) writeonly buffer sceneSdfLayout
-{
-    float sceneSdfBuffer[];
-};
-
+layout(binding = 1) uniform sampler2D colorMaskTex;
+layout(binding = 2, r32f) uniform image2D sdfImage;
+layout(binding = 3, rgba32f) uniform sampler2D jfaTex;
 
 uniform ivec2 resolution;
 

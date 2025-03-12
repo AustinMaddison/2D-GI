@@ -5,20 +5,10 @@ layout(std430, binding = 1) readonly buffer finalPassLayout
     vec3 finalPassBuffer[];
 };
 
-layout(std430, binding = 2) readonly buffer sceneSdfLayout
-{
-    float sceneSdfBuffer[];
-};
-
-layout(std430, binding = 3) readonly buffer sceneColorMaskLayout
-{
-    vec4 sceneColorMaskBuffer[];
-};
-
-layout(std430, binding = 4) readonly buffer jfaLayout
-{
-    ivec2 jfaBuffer[];
-};
+layout(binding = 2) uniform sampler2D colorMaskTex;
+layout(binding = 3) uniform sampler2D sdfTex;
+layout(binding = 4) uniform sampler2D normalsTex;
+layout(binding = 5) uniform sampler2D jfaTex;
 
 in vec2 fragTexCoord;
 out vec4 fragColor;
@@ -36,13 +26,5 @@ void main()
     ivec2 uv = ivec2(fragTexCoord*resolution);
     uint idx = getIdx(uv);
 
-    // fragColor = vec4(finalPassBuffer[idx], 1.0f);
-    // fragColor = vec4(vec3(sceneSdfBuffer[idx]), 1.0f);
-    // fragColor = vec4(sceneColorMaskBuffer[idx]);
-    fragColor = vec4( vec2(jfaBuffer[idx]) / resolution.x, 0., 1.);
-    fragColor = vec4( smoothstep(resolution, resolution.x, distance(jfaBuffer[idx], uv)),0. , 0., 1.);
-    // fragColor = vec4( vec2(jfaBuffer[idx]), 0., 1.);
-    // fragColor = vec4(vec3(uv, 0.), 1.0f);
-    // fragColor = vec4(vec3(uv, 0.0), 1.0f);
-    // fragColor = vec4(vec3(fragTexCoord, 0.0), 1.0f);
+    fragColor = vec4(finalPassBuffer[idx], 1.0f);
 }

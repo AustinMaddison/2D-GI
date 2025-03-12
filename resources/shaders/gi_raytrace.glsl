@@ -2,23 +2,20 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
+layout(binding = 1) uniform sampler2D sdfTex;
+layout(binding = 2) uniform sampler2D normalsTex;
 
-layout(std430, binding = 1) readonly buffer sceneSdfLayout
+layout(std430, binding = 3) buffer rayCountLayout
 {
-    float sceneSdfBuffer[];
+    uint rayCountBuffer;
 };
 
-layout(std430, binding = 2) readonly buffer sceneNormalsLayout
-{
-    vec2 sceneNormalsBuffer[];
-};
-
-layout(std430, binding = 3) writeonly buffer sceneGiALayout 
+layout(std430, binding = 4) writeonly buffer sceneGiALayout 
 {
     vec3 sceneGiBufferA[];   
 };
 
-layout(std430, binding = 4) readonly buffer sceneGiBLayout 
+layout(std430, binding = 5) readonly buffer sceneGiBLayout 
 {
     vec3 sceneGiBufferB[];   
 };
@@ -140,6 +137,7 @@ void main()
     }
 
     sceneGiBufferA[getIdx(uv)] = contribution;
+    atomicAdd(rayCountBuffer, 1);
     // sceneGiBufferA[getIdx(uv)] = vec3(sceneNormalsBuffer[getIdx(uv)], 0.);
     // sceneGiBufferA[getIdx(uv)] = vec3(1.0);
 }

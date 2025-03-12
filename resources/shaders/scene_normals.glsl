@@ -2,15 +2,8 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer sceneSdfLayout
-{
-    float sceneSdfBuffer[];
-};
-
-layout(std430, binding = 2) writeonly buffer sceneNormalsLayout
-{
-    vec2 sceneNormalsBuffer[];
-};
+layout(binding = 1) uniform sampler2D sdfTex;
+layout(binding = 2, rgb32f) uniform image2D normalsImage;
 
 uniform ivec2 resolution;
 
