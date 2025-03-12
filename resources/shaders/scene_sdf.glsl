@@ -4,7 +4,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(binding = 1) uniform sampler2D colorMaskTex;
 layout(binding = 2, r32f) uniform image2D sdfImage;
-layout(binding = 3, rgba32f) uniform sampler2D jfaTex;
+layout(binding = 3) uniform sampler2D jfaTex;
 
 uniform ivec2 resolution;
 
@@ -73,62 +73,63 @@ bool out_of_bound(ivec2 p)
     return false;
 }
 
-// float sdf_map(vec2 uv)
-// {
-//     float map = INF;
+float sdf_map(vec2 uv)
+{
+    float map = INF;
 
-//     // walls
-//     float thickness = 5.;
+    // walls
+    float thickness = 5.;
 
-//     // circle
-//     float radius = 5.0f;
-//     float spacing = 150.0f;
-//     float angle = 0.0;
-//     float angleIncrement = .1;
-//     float radiusIncrement = 10.0;
-//     float currentRadius = radius;
-//     // vec2 center = vec2(resolution.x / 2.0);
+    // circle
+    float radius = 5.0f;
+    float spacing = 150.0f;
+    float angle = 0.0;
+    float angleIncrement = .1;
+    float radiusIncrement = 10.0;
+    float currentRadius = radius;
+    // vec2 center = vec2(resolution.x / 2.0);
 
-//     for (float i = 0.0; i < 100.0; i++) {
-//         vec2 center = vec2(resolution.x / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
+    for (float i = 0.0; i < 100.0; i++) {
+        vec2 center = vec2(resolution.x / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
 
-//         map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
-//         angle += angleIncrement;
-//         currentRadius += radiusIncrement;
-//     }
+        map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
+        angle += angleIncrement;
+        currentRadius += radiusIncrement;
+    }
 
-//     // map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
+    // map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
 
-//     // vec2 center = resolution*.5;
-//     // map = min(map, sdCircle(uv - center, 100.));
-//     // map = min(map, sdSegment(uv, center + vec2(0., 200.), center + vec2(0., -200.)) - 1.);
+    vec2 center = resolution*.5;
+    // map = min(map, sdCircle(uv - center, 100.));
+    // map = min(map, sdSegment(uv, center + vec2(0., 200.), center + vec2(0., -200.)) - 2.);
+    // map = min(map, sdSegment(uv, center + vec2(-200., 200.), center + vec2(200., -200.)) - 2.);
 
-//     // float step_x = resolution.x / 60.;
-//     // float step_y = resolution.y / 60.;
+    // float step_x = resolution.x / 60.;
+    // float step_y = resolution.y / 60.;
 
-//     // for (float i = 0.0; i < 60.0; i++) {
+    // for (float i = 0.0; i < 60.0; i++) {
 
-//     //     vec2 p = vec2(step_x * i, step_y * i);
-//     //     vec2 center = p;
-//     //     map = min(map, sdCircle(uv - center, radius));
-//     // }
+    //     vec2 p = vec2(step_x * i, step_y * i);
+    //     vec2 center = p;
+    //     map = min(map, sdCircle(uv - center, radius));
+    // }
 
-//     // random walls
-//     float wallThickness = 1.0;
-//     float wallLength = 200.0;
-//     float numWalls = 10.0;
-//     for (float i = 0.0; i < numWalls; i++) {
-//         vec2 start = vec2(rand(vec2(i, 0.0)) * resolution.x, rand(vec2(i, 1.0)) * resolution.x);
-//         vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
-//         map = min(map, sdSegment(uv + vec2(100.), start, end) - wallThickness);
-//     }
+    // random walls
+    float wallThickness = 1.0;
+    float wallLength = 200.0;
+    float numWalls = 10.0;
+    for (float i = 0.0; i < numWalls; i++) {
+        vec2 start = vec2(rand(vec2(i, 0.0)) * resolution.x, rand(vec2(i, 1.0)) * resolution.x);
+        vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
+        map = min(map, sdSegment(uv + vec2(100.), start, end) - wallThickness);
+    }
 
-//     // map = min(map, sdSegment(uv, vec2(464., 82.), vec2(734., 342.)) - wallThickness);
+    // map = min(map, sdSegment(uv, vec2(464., 82.), vec2(734., 342.)) - wallThickness);
 
-//     // map = min(map, sdSegment(uv, vec2(487., 259.), vec2(624., 417.)) - wallThickness);
+    // map = min(map, sdSegment(uv, vec2(487., 259.), vec2(624., 417.)) - wallThickness);
 
-//     return map;
-// }
+    return map;
+}
  
 
 void main()
@@ -136,8 +137,5 @@ void main()
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     uint idx = getIdx(uv);
 
-    // Store best coordinate
-    // sceneColorMaskBuffer[idx] = vec4(texture(inputSceneTex, norm_uv).rgb, 1.);
-    // sceneColorMaskBuffer[idx] = vec4(imageLoad(jumpFloodTex, uv).xy, 0., 1.);
-    // sceneColorMaskBuffer[idx] = vec4(norm_uv, 0., 1.);
+    imageStore(sdfImage, uv, vec4(sdf_map(uv)));
 }

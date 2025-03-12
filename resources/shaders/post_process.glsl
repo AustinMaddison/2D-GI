@@ -55,13 +55,32 @@ vec3 LinearToSRGB(vec3 rgb)
     );
 }
 
+vec3 ToneMap_Uncharted2(vec3 color, float exposure)
+{
+    color *= exposure;
+    
+    const float A = 0.15;
+    const float B = 0.50;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.02;
+    const float F = 0.30;
+    
+    vec3 mapped = ((color*(A*color + C*B) + D*E) / (color*(A*color + B) + D*F)) - E/F;
+    
+    float white = 11.2;
+    float whiteScale = 1.0 / (((white*(A*white + C*B))/(white*(A*white + B) + D*F)) - E/F);
+    
+    return mapped * whiteScale;
+}
+
 void main() 
 {
     vec2 uv = gl_GlobalInvocationID.xy;
     uint idx = getIdx(ivec2(uv));
 
     vec3 col = sceneGiBuffer[idx];
-    col = ACESFilm(col);
+    col = ToneMap_Uncharted2(col, .5);
     col = LinearToSRGB(col);
 
     finalPassBuffer[idx] = col;

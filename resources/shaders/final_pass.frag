@@ -26,5 +26,15 @@ void main()
     ivec2 uv = ivec2(fragTexCoord*resolution);
     uint idx = getIdx(uv);
 
-    fragColor = vec4(finalPassBuffer[idx], 1.0f);
+    // fragColor = vec4(finalPassBuffer[idx], 1.0f);
+    // fragColor = vec4(fragTexCoord, 0., 1.0f);
+
+    vec3 col;
+
+    // col = texture(colorMaskTex, fragTexCoord).rgb;
+    // col = vec3(texture(sdfTex, fragTexCoord)/float(resolution.x));
+    // col = vec3(texture(normalsTex, fragTexCoord).rg, 0.);
+    // col = vec3(texture(normalsTex, fragTexCoord).rg, 0.);
+    col = vec3(finalPassBuffer[getIdx(uv)]);
+    fragColor = vec4(col, 1.0f);
 }

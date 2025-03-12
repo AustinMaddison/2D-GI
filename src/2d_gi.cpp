@@ -35,8 +35,8 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define DEFAULT_WIDTH 1024
-#define DEFUALT_HEIGHT 1024
+#define DEFAULT_WIDTH 720  
+#define DEFUALT_HEIGHT 512
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
@@ -111,6 +111,7 @@ typedef struct
     std::map<uint, uint> sampleCurrUniformLocs;
     std::map<uint, uint> resolutionUniformLocs;
     std::map<uint, uint> mouseUniformLocs;
+    std::map<uint, uint> timeUniformLocs;
 } AppState;
 
 void CreateAppState(AppState *state)
@@ -236,6 +237,7 @@ void CreateRenderPipeline(AppState *state)
     for (auto prog : programs)
     {
         state->sampleCurrUniformLocs[prog] = rlGetLocationUniform(prog, "samplesCurr");
+        state->timeUniformLocs[prog] = rlGetLocationUniform(prog, "time");
     }
 
     /* ----------------------------- Create Textures ---------------------------- */
@@ -249,7 +251,23 @@ void CreateRenderPipeline(AppState *state)
     state->jfaTex_A = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     state->jfaTex_B = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
     state->sceneSdfTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32, 1);
-    state->sceneNormalsTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+    state->sceneNormalsTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+
+    auto textures = {
+        state->sceneColorMaskTex,
+        state->jfaTex_A,
+        state->jfaTex_B,
+        state->sceneSdfTex,
+        state->sceneNormalsTex
+    };
+
+    for (auto tex : textures)
+    {
+        rlTextureParameters(tex, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_CLAMP);
+        rlTextureParameters(tex, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_CLAMP);
+        rlTextureParameters(tex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_BILINEAR);
+        rlTextureParameters(tex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_BILINEAR);
+    }
     
     /* ------------------------------ Create SSBOs ------------------------------ */
 
@@ -427,11 +445,13 @@ void RunRenderPipeline(AppState *state)
         state->giRadienceProbesProgram,
         state->giRadienceCascadesProgram};
 
+    float timeElapsed = (float)state->timeElapsed;
     for (auto prog : programs)
     {
         rlEnableShader(prog);
         rlSetUniform(state->sampleCurrUniformLocs[prog], &(state->samplesCurr), SHADER_UNIFORM_UINT, 1);
         rlDisableShader();
+        rlSetUniform(state->timeUniformLocs[prog], &timeElapsed, SHADER_UNIFORM_FLOAT, 1);
     }
 
     /* ------------------------ Dispatch compute shaders ------------------------ */
@@ -444,21 +464,24 @@ void RunRenderPipeline(AppState *state)
         // Generate SDF Map
         rlEnableShader(state->sceneSdfProgram);
         rlActiveTextureSlot(1);
-        rlSetTexture(state->sceneColorMaskTex);
+        rlEnableTexture(state->sceneColorMaskTex);
         rlBindImageTexture(state->sceneSdfTex, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32, false);
         rlActiveTextureSlot(3);
-        rlSetTexture(state->jfaTex_A);
+        rlEnableTexture(state->jfaTex_A);
         rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
         rlDisableShader();
+
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         // Compute Normals
         rlEnableShader(state->sceneNormalsProgram);
-        rlActiveTextureSlot(1);
-        rlSetTexture(state->sceneSdfTex);
-        rlBindImageTexture(state->sceneNormalsTex, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, false);
+        // rlActiveTextureSlot(1);
+        // rlEnableTexture(state->sceneSdfTex);
+        rlBindImageTexture(state->sceneSdfTex, 1, RL_PIXELFORMAT_UNCOMPRESSED_R32, true);
+        rlBindImageTexture(state->sceneNormalsTex, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
         rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
         rlDisableShader();
-
+    
         state->isSceneChanged = false;
     }
 
@@ -481,9 +504,9 @@ void RunRenderPipeline(AppState *state)
     // Compute GI
     rlEnableShader(giProgramChosen);
     rlActiveTextureSlot(1);
-    rlSetTexture(state->sceneSdfTex);
+    rlEnableTexture(state->sceneSdfTex);
     rlActiveTextureSlot(2);
-    rlSetTexture(state->sceneNormalsTex);
+    rlEnableTexture(state->sceneNormalsTex);
     rlBindShaderBuffer(state->rayCountSSBO, 3);
     rlBindShaderBuffer(state->sceneGiSSBO_A, 4);
     rlBindShaderBuffer(state->sceneGiSSBO_B, 5);
@@ -494,27 +517,29 @@ void RunRenderPipeline(AppState *state)
     // Compute Composite and Post-processing
     rlEnableShader(state->postProcessProgram);
     rlActiveTextureSlot(1);
-    rlSetTexture(state->sceneColorMaskTex);
+    rlEnableTexture(state->sceneColorMaskTex);
     rlBindShaderBuffer(state->sceneGiSSBO_A, 2);
     rlBindShaderBuffer(state->finalPassSSBO, 3);
     rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
+
 }
 
 void UpdateFrameBuffer(AppState *state)
 {
+
     rlEnableShader(state->finalPassProgram);
     rlBindShaderBuffer(state->finalPassSSBO, 1);
 
     // Attach other textures for debugging
     rlActiveTextureSlot(2);
-    rlSetTexture(state->sceneColorMaskTex);
+    rlEnableTexture(state->sceneColorMaskTex);
     rlActiveTextureSlot(3);
-    rlSetTexture(state->sceneSdfTex);
+    rlEnableTexture(state->sceneSdfTex);
     rlActiveTextureSlot(4);
-    rlSetTexture(state->sceneNormalsTex);
+    rlEnableTexture(state->sceneNormalsTex);
     rlActiveTextureSlot(5);
-    rlSetTexture(state->jfaTex_A);
+    rlEnableTexture(state->jfaTex_A);
 
     rlLoadDrawQuad();
     rlDrawCall();
@@ -525,12 +550,13 @@ void UpdateGui(AppState *state)
 {
     if (IsCursorOnScreen())
     {
-        void* data;
-        data = rlReadTexturePixels(state->sceneSdfTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32);
-        state->distClosestSurface = *(float*)(data);
+        // void* data;
+        // data = rlReadTexturePixels(state->sceneSdfTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32);
+        // state->distClosestSurface = *(float*)(data);
 
-        data = rlReadTexturePixels(state->sceneNormalsTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32);
-        state->normals = *(Vector2*)(data);
+        // data = rlReadTexturePixels(state->sceneNormalsTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32);
+        
+        // state->normals = *(Vector3*)(data);
 
         DrawCircleLines(GetMouseX(), GetMouseY(), state->distClosestSurface, RED);
         DrawCircle(GetMouseX(), GetMouseY(), 2, RED);
@@ -540,16 +566,16 @@ void UpdateGui(AppState *state)
 
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 100);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, 100);
-    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 314, 200}, "Info Panel");
+    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 200, 180}, "Info Panel");
     anchor.y += 20;
-    GuiLabel((Rectangle){anchor.x, anchor.y, 300, 20}, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 40, 300, 20}, TextFormat("%s %f, %s %f %f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 60, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 80, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 100, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 120, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 140, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
+    // GuiLabel((Rectangle){anchor.x, anchor.y, 300, 20}, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 20-20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 40-20, 300, 20}, TextFormat("%s %f, %s %.2f %.2f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 60-20, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 80-20, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 100-20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 120-20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 140-20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
 
     // DrawRectangle(0, GetScreenHeight()-12, GetScreenWidth(), 12, {0, 0, 0, 200});
 
