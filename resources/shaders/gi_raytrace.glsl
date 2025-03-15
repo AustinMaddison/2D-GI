@@ -29,7 +29,7 @@ uniform float time;
 #define PI 3.14159265359
 #define EPSILON 0.01
 #define MAX_STEPS 100
-#define MAX_BOUNCE 3
+#define MAX_BOUNCE 5
 
 #define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
@@ -79,131 +79,6 @@ float Attenuation_simple(float d)
     return clamp(1.0 / (d * d), 0.0, 1.0);
 }
 
-float sphereSDF(vec2 p, float r) {
-    return length(p) - r;
-}
-
-float boxSDF(vec2 p, vec2 size) {
-    vec2 d = abs(p) - size;
-    return min(max(d.x, d.y), 0.) + length(max(d, vec2(0, 0)));
-}
-
-float segmentSDF(vec2 p, vec2 a, vec2 b)
-{
-    vec2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba * h);
-}
-
-void AddObj(inout float dist, inout vec3 color, float d, vec3 c) {
-    if (dist > d) {
-        dist = d;
-        color = c;
-    }
-}
-
-void Scene(in vec2 pos, out vec3 color, out float dist) {
-    dist = INF;
-    color = vec3(0, 0, 0);
-    // AddObj(dist, color, boxSDF(pos - vec2(0, 0), vec2(1, 1)), vec3(.6, .8, 1.));
-
-
-    float thickness = 5.0;
-
-    // Circle
-    // float radius = 0.01;
-    // float spacing = 0.15;
-    // float angle = 0.0;
-    // float angleIncrement = 0.1;
-    // float radiusIncrement = 0.1;
-    // float currentRadius = radius;
-
-    // for (float i = 0.0; i < 10.0; i++) {
-    //     vec2 center = vec2(0.0) + vec2(cos(angle), sin(angle)) * currentRadius;
-    //     AddObj(dist, color, sphereSDF(pos - center, radius), vec3(1.0, 0.0, 0.0));
-    //     angle += angleIncrement;
-    //     currentRadius += radiusIncrement;
-    // }
-
-    vec2 center = vec2(0.0);
-    // AddObj(dist, color, sphereSDF(pos - center, 0.1), vec3(0.0, 1.0, 0.0));
-    // AddObj(dist, color, segmentSDF(pos, center + vec2(0.0, 0.0), center + vec2(0.0, -0.2)) - 0.02, vec3(0.0, 0.0, 1.0));
-    // AddObj(dist, color, segmentSDF(pos, center + 0, center + vec2(0.2, -0.2)) - 0.02, vec3(1.0, 1.0, 0.0));
-
-    AddObj(dist, color, segmentSDF(
-        pos, 
-        center + vec2(0.0, 5.0), 
-        center + vec2(0.0, -5.)) - 0.02, 
-        vec3(1.0, 1.0, 10.0)
-    );
-
-    AddObj(dist, color, segmentSDF(
-        pos, 
-        center + vec2(5.0, 0.0), 
-        center + vec2(-5.0, 0.)) - 0.02, 
-        vec3(10.0, 1.0, 0.0)
-    );
-
-    AddObj(dist, color, sphereSDF(
-        pos - vec2(5.0, 5.0), 
-        1.), 
-        vec3(5.0, 5.0, 5.0)
-    );
-
-
-    AddObj(dist, color, sphereSDF(
-        pos - vec2(-2.5, 2.5), 
-        1.), 
-        vec3(0.0, 0.0, 0.0)
-    );
-
-    AddObj(dist, color, segmentSDF(
-        pos, 
-        center + vec2(5.0, 2.5), 
-        center + vec2(1.0, 2.5)) - 0.04, 
-        vec3(0.0, 0.0, 0.0)
-    );
-
-    // AddObj(dist, color, sphereSDF(
-    //     pos - vec2(-5.0, 5.0), 
-    //     1.), 
-    //     vec3(100.0, 100.0, 100.0)
-    // );
-
-
-    // Random walls
-    // float wallThickness = 0.01;
-    // float wallLength = 0.2;
-    // float numWalls = 10.0;
-    // for (float i = 0.0; i < numWalls; i++) {
-    //     vec2 start = vec2(hash(vec2(i, 0.0)) * 2.0 - 1.0, hash(vec2(i, 1.0)) * 2.0 - 1.0);
-    //     vec2 end = start + vec2(hash(vec2(i, 2.0)) * wallLength, hash(vec2(i, 3.0)) * wallLength);
-    //     AddObj(dist, color, segmentSDF(pos, start, end) - wallThickness, vec3(1., 1., 1.));
-    // }
-    // AddObj(dist, color, sphereSDF(pos - vec2(0, 0), 0.5), vec3(1, .9, .8));
-    // AddObj(dist, color, sphereSDF(pos - vec2(.3 * sin(time), -2), 0.5), vec3(0, .1, 0));
-    // AddObj(dist, color, boxSDF(pos - vec2(0, 1), vec2(1.5, 0.1)), vec3(.3, .1, .1));
-    // for (int i = 0; i < 10; i++) {
-    //     vec2 randomPos = vec2(hash(vec2(float(i), time)), hash(vec2(float(i + 10), time))) * 2.0 - 1.0;
-    //     float randomSize = hash(vec2(float(i + 20), time)) * 0.5 + 0.1;
-    //     vec3 randomColor = vec3(hash(vec2(float(i + 30), time)), hash(vec2(float(i + 40), time)), hash(vec2(float(i + 50), time)));
-        // AddObj(dist, color, sphereSDF(pos - randomPos, randomSize), randomColor);
-    // }
-}
-
-vec2 GetSceneNormal(vec2 pos) {
-    float h = EPSILON;
-    float distX1, distX2, distY1, distY2;
-    vec3 color;
-
-    Scene(pos + vec2(h, 0), color, distX1);
-    Scene(pos - vec2(h, 0), color, distX2);
-    Scene(pos + vec2(0, h), color, distY1);
-    Scene(pos - vec2(0, h), color, distY2);
-
-    vec2 normal = vec2(distX1 - distX2, distY1 - distY2);
-    return normalize(normal);
-}
 
 bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
 {    
@@ -279,11 +154,11 @@ void main()
         GenBounceRay(pos, dir);
     }
 
-    
     if (samplesCurr > 0)
     {
         contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(st)] * float(samplesCurr - 1))) / float(samplesCurr);
     }
+
     float d;
     vec3 color;
     Scene(uv, color, d);

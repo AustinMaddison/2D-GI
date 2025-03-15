@@ -35,8 +35,8 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-#define DEFAULT_WIDTH 720  
-#define DEFUALT_HEIGHT 512
+#define DEFAULT_WIDTH 512  
+#define DEFAULT_HEIGHT 512
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
@@ -58,6 +58,7 @@ enum Mode
     FINISHED
 };
 
+
 typedef struct
 {
     /* ---------------------------------- State --------------------------------- */
@@ -78,6 +79,7 @@ typedef struct
     float frameTime; // ms
     float fps;       // frames per second
     float rps;       // rays per second
+    uint rayCount;
 
     float distClosestSurface;
     Vector2 normals;
@@ -87,8 +89,8 @@ typedef struct
     uint jfaIterationProgram; // jump flood
     uint sceneSdfProgram;
     uint giRayTraceProgram;
-    uint giRadienceProbesProgram;
-    uint giRadienceCascadesProgram;
+    uint giRadianceProbesProgram;
+    uint giRadianceCascadesProgram;
     uint sceneNormalsProgram;
     uint postProcessProgram;
     uint finalPassProgram;
@@ -126,7 +128,7 @@ void CreateAppState(AppState *state)
     state->isSceneChanged = true;
 
     state->width = DEFAULT_WIDTH;
-    state->height = DEFUALT_HEIGHT;
+    state->height = DEFAULT_HEIGHT;
 
     state->mousePos = Vector2({0, 0});
 
@@ -176,12 +178,12 @@ void CreateRenderPipeline(AppState *state)
 
     shaderCode = LoadFileText("shaders/gi_raytrace.glsl"); // TODO: change
     compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
-    state->giRadienceProbesProgram = rlLoadComputeShaderProgram(compiledShader);
+    state->giRadianceProbesProgram = rlLoadComputeShaderProgram(compiledShader);
     UnloadFileText(shaderCode);
 
     shaderCode = LoadFileText("shaders/gi_raytrace.glsl"); // TODO: change
     compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
-    state->giRadienceCascadesProgram = rlLoadComputeShaderProgram(compiledShader);
+    state->giRadianceCascadesProgram = rlLoadComputeShaderProgram(compiledShader);
     UnloadFileText(shaderCode);
 
     // Post-processing
@@ -208,8 +210,8 @@ void CreateRenderPipeline(AppState *state)
         state->sceneSdfProgram,
         state->sceneSdfProgram,
         state->giRayTraceProgram,
-        state->giRadienceProbesProgram,
-        state->giRadienceCascadesProgram,
+        state->giRadianceProbesProgram,
+        state->giRadianceCascadesProgram,
         state->sceneNormalsProgram,
         state->postProcessProgram,
         state->finalPassProgram
@@ -230,9 +232,10 @@ void CreateRenderPipeline(AppState *state)
     }
 
     programs = {
+        state->finalPassProgram,
         state->giRayTraceProgram,
-        state->giRadienceProbesProgram,
-        state->giRadienceCascadesProgram};
+        state->giRadianceProbesProgram,
+        state->giRadianceCascadesProgram};
 
     for (auto prog : programs)
     {
@@ -243,13 +246,13 @@ void CreateRenderPipeline(AppState *state)
     /* ----------------------------- Create Textures ---------------------------- */
 
     // Load images into OpenGl Textures
-    Image sceneImg = LoadImage("textures/test_flood_fill.png");
     // Image sceneImg = LoadImage("textures/test_flood_fill_box.png");
+    Image sceneImg = LoadImage("textures/test_flood_fill.png");
     ImageFormat(&sceneImg, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
     state->sceneColorMaskTex = rlLoadTexture(sceneImg.data, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-    state->jfaTex_A = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
-    state->jfaTex_B = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32, 1);
+    state->jfaTex_A = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    state->jfaTex_B = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
     state->sceneSdfTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32, 1);
     state->sceneNormalsTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
 
@@ -288,8 +291,8 @@ void DeleteRenderPipeline(AppState *state)
         state->jfaIterationProgram,
         state->sceneSdfProgram,
         state->giRayTraceProgram,
-        state->giRadienceProbesProgram,
-        state->giRadienceCascadesProgram,
+        state->giRadianceProbesProgram,
+        state->giRadianceCascadesProgram,
         state->sceneNormalsProgram,
         state->postProcessProgram,
         state->finalPassProgram
@@ -343,36 +346,6 @@ const char *GetTimeStamp()
     return TextFormat("%i-%i-%i-%i-%i-%i", ltm->tm_year, ltm->tm_mon, ltm->tm_mday, ltm->tm_hour, ltm->tm_min, ltm->tm_sec);
 }
 
-// void DispatchJumpFlood(AppState *state)
-// {
-//     /* -------------------------------- Set Seed -------------------------------- */
-//     rlEnableShader(state->jfaSetSeedProgram);
-//     rlBindShaderBuffer(state->sceneColorMaskSSBO, 1);
-//     rlBindShaderBuffer(state->jfaSSBO_A, 2);
-//     rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
-//     rlDisableShader();
-    
-//     /* --------------------------- Iterate Jump Flood --------------------------- */
-//     int stepWidth = std::max(state->width, state->height)/2;
-//     // int stepWidth = 512;
-//     // int iterations = static_cast<int>(std::log2(stepWidth));
-//     int iterations = 9;
-//     uint stepWidthLocs =  rlGetLocationUniform(state->jfaIterationProgram, "stepWidth");
-    
-//     rlEnableShader(state->jfaIterationProgram);
-
-//     for (int i = 0; i < (int)iterations; i++)
-//     {
-//         rlSetUniform(stepWidthLocs, &stepWidth, RL_SHADER_UNIFORM_INT, 1);
-//         rlBindShaderBuffer(state->jfaSSBO_A, 1);
-//         rlBindShaderBuffer(state->jfaSSBO_B, 2);
-//         rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
-//         std::swap(state->jfaSSBO_A, state->jfaSSBO_B);
-//         stepWidth /=2;
-//     }
-//     rlDisableShader();
-// }
-
 void SaveImage(AppState *state)
 {
     RenderTexture2D renderTexTarget = LoadRenderTexture(state->width, state->height);
@@ -396,14 +369,38 @@ void SaveImage(AppState *state)
     UnloadRenderTexture(renderTexTarget);
 }
 
-void SetUniforms(const std::vector<uint> &programs, const std::map<uint, uint> &uniformLocs, const void *data, rlShaderUniformDataType uniformType, int count)
+
+
+void DispatchJumpFlood(AppState *state)
 {
-    for (auto prog : programs)
+    /* -------------------------------- Set Seed -------------------------------- */
+    rlEnableShader(state->jfaSetSeedProgram);
+    rlBindImageTexture(state->sceneColorMaskTex, 1, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, true);
+    rlBindImageTexture(state->jfaTex_A, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
+    rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+    rlDisableShader();
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    
+    /* --------------------------- Iterate Jump Flood --------------------------- */
+
+    int stepWidth = std::max(state->width, state->height)/2;
+    int iterations = ceil(log2(std::max(state->width, state->height)));
+    uint stepWidthLocs =  rlGetLocationUniform(state->jfaIterationProgram, "stepWidth");
+    
+    rlEnableShader(state->jfaIterationProgram);
+    for (int i = 0; i < iterations; i++)
     {
-        rlEnableShader(prog);
-        rlSetUniform(uniformLocs.at(prog), data, uniformType, count);
-        rlDisableShader();
+        rlActiveTextureSlot(1);
+        rlEnableTexture(state->jfaTex_A);
+        rlBindImageTexture(state->jfaTex_B, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
+        rlSetUniform(stepWidthLocs, &stepWidth, RL_SHADER_UNIFORM_INT, 1);
+        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        std::swap(state->jfaTex_A, state->jfaTex_B);
+        stepWidth /=2;
     }
+    rlDisableShader();
 }
 
 void RunRenderPipeline(AppState *state)
@@ -414,8 +411,8 @@ void RunRenderPipeline(AppState *state)
         state->jfaIterationProgram,
         state->sceneSdfProgram,
         state->giRayTraceProgram,
-        state->giRadienceProbesProgram,
-        state->giRadienceCascadesProgram,
+        state->giRadianceProbesProgram,
+        state->giRadianceCascadesProgram,
         state->sceneNormalsProgram,
         state->postProcessProgram,
         state->finalPassProgram
@@ -441,25 +438,27 @@ void RunRenderPipeline(AppState *state)
     }
 
     programs = {
+        state->finalPassProgram,
         state->giRayTraceProgram,
-        state->giRadienceProbesProgram,
-        state->giRadienceCascadesProgram};
+        state->giRadianceProbesProgram,
+        state->giRadianceCascadesProgram};
 
     float timeElapsed = (float)state->timeElapsed;
     for (auto prog : programs)
     {
         rlEnableShader(prog);
         rlSetUniform(state->sampleCurrUniformLocs[prog], &(state->samplesCurr), SHADER_UNIFORM_UINT, 1);
-        rlDisableShader();
         rlSetUniform(state->timeUniformLocs[prog], &timeElapsed, SHADER_UNIFORM_FLOAT, 1);
+        rlDisableShader();
     }
 
     /* ------------------------ Dispatch compute shaders ------------------------ */
 
+
     if (state->isSceneChanged)
     {
         // Compute Jump Flood
-        // DispatchJumpFlood(state);
+        DispatchJumpFlood(state);
 
         // Generate SDF Map
         rlEnableShader(state->sceneSdfProgram);
@@ -522,7 +521,6 @@ void RunRenderPipeline(AppState *state)
     rlBindShaderBuffer(state->finalPassSSBO, 3);
     rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
-
 }
 
 void UpdateFrameBuffer(AppState *state)
@@ -676,6 +674,7 @@ int main(void)
     CreateAppState(&state);
 
     InitWindow(state.width, state.height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+    SetTargetFPS(120);
 
     SearchAndSetResourceDir("resources");
     GuiLoadStyle("styles/style_darker.rgs");

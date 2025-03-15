@@ -2,62 +2,67 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 1) readonly buffer jfaLayout_A {
-    ivec2 jfaBuffer_A[];
-};
-
-layout(std430, binding = 2) buffer jfaLayout_B {
-    ivec2 jfaBuffer_B[];
-};
+layout(binding = 1) uniform sampler2D jfaTex_A;
+layout(binding = 2, rgba32f) uniform  image2D jfaImg_B;
 
 uniform ivec2 resolution;
 uniform int stepWidth;
 
+#define INF 1E9
 #define getIdx(uv) ((uv).x + resolution.x * (uv).y)
 
-bool out_of_bound(ivec2 p) {
-    return p.x < 0 || p.y < 0 || p.x >= resolution.x || p.y >= resolution.y;
+void JumpFlood(inout vec4 jfaOut, in vec2 uv, in vec2 dir)
+{
+    uv += dir * float(stepWidth);
+    vec3 samplePos = texture(jfaTex_A, uv).xyz;
+
+	if(samplePos.z < 1.0)
+		return;
+
+	if(samplePos.x == 0.0 && samplePos.y == 0.0 )
+		return;
+
+    float dist = length(jfaOut.xy - samplePos.xy);
+
+    if(dist < jfaOut.w)
+    {
+        jfaOut = vec4(samplePos.xy, 1.0, dist);
+    }
+
+    // imageStore(jfaImg_B, st, vec4(dist, 0., 0., 0.));
 }
 
-void main() {
-    ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    if (out_of_bound(uv)) {
-        return;
-    }
-    uint idx = getIdx(uv);
+void main() 
+{
+    ivec2 st = ivec2(gl_GlobalInvocationID.xy);
+    vec2 texelSize = 1. / vec2(resolution);
 
-    ivec2 best_seed = jfaBuffer_A[idx];
-    ivec2 current_seed = best_seed;
-    int best_dist_sq = 999999999;
+	vec2 uv = st * texelSize;
+	vec4 initialSeed = texture(jfaTex_A, st * texelSize); 
+    
+	vec4 jfaOut = initialSeed;
+    jfaOut.w = INF;
 
-    for (int y = 0; y < 3; ++y) {
-        for (int x = 0; x < 3; ++x) {
-            // Generate offsets from -1 to +1 in both axes
-            int dx = x - 1;
-            int dy = y - 1;
-            ivec2 samplePos = uv + ivec2(dx, dy) * stepWidth;
+    for(int x = -1; x <= 1; x++)
+    {
+        for(int y = -1; y <= 1; y++)
+        {
+            vec2 dir = vec2(x, y);
+			vec2 uv_offset = st * texelSize + dir * float(stepWidth) * texelSize;
+			vec3 samplePos = texture(jfaTex_A, uv_offset).xyz;
 
-            if (out_of_bound(samplePos)) {
-                continue;
-            }
+			float dist = length(uv - samplePos.xy);
 
-            // Get neighbor's seed from previous JFA pass
-            ivec2 neighbor_seed = jfaBuffer_A[getIdx(samplePos)];
-            
-            // Calculate squared distance from current pixel to neighbor's seed
-            int dist_sq = (uv.x +resolution.x - neighbor_seed.x) * (uv.x +resolution.x - neighbor_seed.x) 
-                        + (uv.y - neighbor_seed.y) * (uv.y - neighbor_seed.y);
-
-            // Update best seed if closer
-            if (dist_sq < best_dist_sq) {
-                best_dist_sq = dist_sq;
-                best_seed = neighbor_seed;
-            }
-     
-
+			if( samplePos.z > 0.5 && (dist < jfaOut.w || jfaOut.z <= 0.5))
+			{
+				jfaOut.xy = samplePos.xy;
+				jfaOut.z = 1.0;
+				jfaOut.w = dist;
+			}
         }
     }
 
-    // Write the closest seed to the output buffer
-    jfaBuffer_B[idx] = best_seed;
+   
+    imageStore(jfaImg_B, st, jfaOut);
+
 }

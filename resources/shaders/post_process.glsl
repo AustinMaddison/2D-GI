@@ -24,18 +24,6 @@ vec3 gammaCorrect(vec3 color, float gamma)
     return pow(color, vec3(1.0 / gamma));
 }
 
-// ACES tone mapping curve fit to go from HDR to LDR
-//https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-vec3 ACESFilm(vec3 x)
-{
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    return clamp((x*(a*x + b)) / (x*(c*x + d) + e), 0.0f, 1.0f);
-}
-
 vec3 LessThan(vec3 f, float value)
 {
     return vec3(

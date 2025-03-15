@@ -13,129 +13,93 @@ uniform ivec2 resolution;
 // SDF Functions
 // source: https://iquilezles.org/articles/distfunctions2d/
 /* -------------------------------------------------------------------------- */
-float sdCircle(vec2 p, float r)
-{
+
+float sphereSDF(vec2 p, float r) {
     return length(p) - r;
 }
 
-float sdBox(in vec2 p, in vec2 b)
-{
-    vec2 d = abs(p) - b;
-    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+float boxSDF(vec2 p, vec2 size) {
+    vec2 d = abs(p) - size;
+    return min(max(d.x, d.y), 0.) + length(max(d, vec2(0, 0)));
 }
 
-float sdOrientedBox(in vec2 p, in vec2 a, in vec2 b, float th)
-{
-    float l = length(b - a);
-    vec2 d = (b - a) / l;
-    vec2 q = (p - (a + b) * 0.5);
-    q = mat2(d.x, -d.y, d.y, d.x) * q;
-    q = abs(q) - vec2(l, th) * 0.5;
-    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-}
-
-float sdSegment(in vec2 p, in vec2 a, in vec2 b)
+float segmentSDF(vec2 p, vec2 a, vec2 b)
 {
     vec2 pa = p - a, ba = b - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * h);
 }
 
-float sdPie(in vec2 p, in vec2 c, in float r)
-{
-    p.x = abs(p.x);
-    float l = length(p) - r;
-    float m = length(p - c * clamp(dot(p, c), 0.0, r)); // c=sin/cos of aperture
-    return max(l, m * sign(c.y * p.x - c.x * p.y));
-}
-
-// root
-float smin(float a, float b, float k)
-{
-    k *= 2.0;
-    float x = (b - a) / k;
-    float g = 0.5 * (x + sqrt(x * x + 1.0));
-    return b - k * g;
-}
-
-float rand(vec2 co)
-{
-    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-}
-#define INF 1e6
-
-bool out_of_bound(ivec2 p)
-{
-    if (p.x < 0) return true;
-    if (p.y < 0) return true;
-    if (p.x >= resolution.x) return true;
-    if (p.y >= resolution.y) return true;
-    return false;
-}
-
-float sdf_map(vec2 uv)
-{
-    float map = INF;
-
-    // walls
-    float thickness = 5.;
-
-    // circle
-    float radius = 5.0f;
-    float spacing = 150.0f;
-    float angle = 0.0;
-    float angleIncrement = .1;
-    float radiusIncrement = 10.0;
-    float currentRadius = radius;
-    // vec2 center = vec2(resolution.x / 2.0);
-
-    for (float i = 0.0; i < 100.0; i++) {
-        vec2 center = vec2(resolution.x / 2.0) + vec2(cos(angle), sin(angle)) * currentRadius;
-
-        map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
-        angle += angleIncrement;
-        currentRadius += radiusIncrement;
+void AddObj(inout float dist, inout vec3 color, float d, vec3 c) {
+    if (dist > d) {
+        dist = d;
+        color = c;
     }
-
-    // map = min(map, sdCircle(uv - center - ivec2(200, 0), radius));
-
-    vec2 center = resolution*.5;
-    // map = min(map, sdCircle(uv - center, 100.));
-    // map = min(map, sdSegment(uv, center + vec2(0., 200.), center + vec2(0., -200.)) - 2.);
-    // map = min(map, sdSegment(uv, center + vec2(-200., 200.), center + vec2(200., -200.)) - 2.);
-
-    // float step_x = resolution.x / 60.;
-    // float step_y = resolution.y / 60.;
-
-    // for (float i = 0.0; i < 60.0; i++) {
-
-    //     vec2 p = vec2(step_x * i, step_y * i);
-    //     vec2 center = p;
-    //     map = min(map, sdCircle(uv - center, radius));
-    // }
-
-    // random walls
-    float wallThickness = 1.0;
-    float wallLength = 200.0;
-    float numWalls = 10.0;
-    for (float i = 0.0; i < numWalls; i++) {
-        vec2 start = vec2(rand(vec2(i, 0.0)) * resolution.x, rand(vec2(i, 1.0)) * resolution.x);
-        vec2 end = start + vec2(rand(vec2(i, 2.0)) * wallLength, rand(vec2(i, 3.0)) * wallLength);
-        map = min(map, sdSegment(uv + vec2(100.), start, end) - wallThickness);
-    }
-
-    // map = min(map, sdSegment(uv, vec2(464., 82.), vec2(734., 342.)) - wallThickness);
-
-    // map = min(map, sdSegment(uv, vec2(487., 259.), vec2(624., 417.)) - wallThickness);
-
-    return map;
 }
+
+void Scene(in vec2 pos, out vec3 color, out float dist) {
+    dist = INF;
+    color = vec3(0, 0, 0);
+
+    vec2 center = vec2(0.0);
  
+    AddObj(dist, color, segmentSDF(
+        pos, 
+        center + vec2(0.0, 5.0), 
+        center + vec2(0.0, -5.)) - 0.02, 
+        vec3(1.0, 1.0, 10.0)
+    );
+
+    AddObj(dist, color, segmentSDF(
+        pos, 
+        center + vec2(5.0, 0.0), 
+        center + vec2(-5.0, 0.)) - 0.02, 
+        vec3(10.0, 1.0, 0.0)
+    );
+
+    AddObj(dist, color, sphereSDF(
+        pos - vec2(5.0, 5.0), 
+        1.), 
+        vec3(5.0, 5.0, 5.0)
+    );
+
+
+    AddObj(dist, color, sphereSDF(
+        pos - vec2(-2.5, 2.5), 
+        1.), 
+        vec3(0.0, 0.0, 0.0)
+    );
+
+    AddObj(dist, color, segmentSDF(
+        pos, 
+        center + vec2(5.0, 2.5), 
+        center + vec2(1.0, 2.5)) - 0.04, 
+        vec3(0.0, 0.0, 0.0)
+    );
+}
+
+vec2 GetSceneNormal(vec2 pos) {
+    float h = EPSILON;
+    float distX1, distX2, distY1, distY2;
+    vec3 color;
+
+    Scene(pos + vec2(h, 0), color, distX1);
+    Scene(pos - vec2(h, 0), color, distX2);
+    Scene(pos + vec2(0, h), color, distY1);
+    Scene(pos - vec2(0, h), color, distY2);
+
+    vec2 normal = vec2(distX1 - distX2, distY1 - distY2);
+    return normalize(normal);
+}
 
 void main()
 {
-    ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    uint idx = getIdx(uv);
+
+    ivec2 st = ivec2(gl_GlobalInvocationID.xy);
+    vec2 uv = (vec2(st) + 0.5) / vec2(resolution);
+    uv = uv * 2.0 - 1.0;
+    uv.x *= float(resolution.x) / float(resolution.y);
+
 
     imageStore(sdfImage, uv, vec4(sdf_map(uv)));
 }
