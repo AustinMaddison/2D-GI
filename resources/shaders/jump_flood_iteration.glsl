@@ -28,8 +28,6 @@ void JumpFlood(inout vec4 jfaOut, in vec2 uv, in vec2 dir)
     {
         jfaOut = vec4(samplePos.xy, 1.0, dist);
     }
-
-    // imageStore(jfaImg_B, st, vec4(dist, 0., 0., 0.));
 }
 
 void main() 
@@ -62,7 +60,5 @@ void main()
         }
     }
 
-   
     imageStore(jfaImg_B, st, jfaOut);
-
 }

@@ -35,8 +35,12 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
+#define DEFAULT_RESOURCE_FOLDER "resources"
+#define DEFAULT_GUI_STYLE "styles/style_darker.rgs"
+#define DEFAULT_CONFIG_FLAGS FLAG_WINDOW_RESIZABLE
 #define DEFAULT_WIDTH 512  
 #define DEFAULT_HEIGHT 512
+#define DEFAULT_REFRESH_RATE 60
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
@@ -248,6 +252,7 @@ void CreateRenderPipeline(AppState *state)
     // Load images into OpenGl Textures
     // Image sceneImg = LoadImage("textures/test_flood_fill_box.png");
     Image sceneImg = LoadImage("textures/test_flood_fill.png");
+    ImageFlipVertical(&sceneImg);
     ImageFormat(&sceneImg, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
     state->sceneColorMaskTex = rlLoadTexture(sceneImg.data, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
@@ -371,7 +376,7 @@ void SaveImage(AppState *state)
 
 
 
-void DispatchJumpFlood(AppState *state)
+void RunJumpFloodAlgorithm(AppState *state)
 {
     /* -------------------------------- Set Seed -------------------------------- */
     rlEnableShader(state->jfaSetSeedProgram);
@@ -458,7 +463,7 @@ void RunRenderPipeline(AppState *state)
     if (state->isSceneChanged)
     {
         // Compute Jump Flood
-        DispatchJumpFlood(state);
+        RunJumpFloodAlgorithm(state);
 
         // Generate SDF Map
         rlEnableShader(state->sceneSdfProgram);
@@ -503,12 +508,14 @@ void RunRenderPipeline(AppState *state)
     // Compute GI
     rlEnableShader(giProgramChosen);
     rlActiveTextureSlot(1);
-    rlEnableTexture(state->sceneSdfTex);
+    rlEnableTexture(state->sceneColorMaskTex);
     rlActiveTextureSlot(2);
+    rlEnableTexture(state->sceneSdfTex);
+    rlActiveTextureSlot(3);
     rlEnableTexture(state->sceneNormalsTex);
-    rlBindShaderBuffer(state->rayCountSSBO, 3);
-    rlBindShaderBuffer(state->sceneGiSSBO_A, 4);
-    rlBindShaderBuffer(state->sceneGiSSBO_B, 5);
+    rlBindShaderBuffer(state->rayCountSSBO, 4);
+    rlBindShaderBuffer(state->sceneGiSSBO_A, 5);
+    rlBindShaderBuffer(state->sceneGiSSBO_B, 6);
     rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
     std::swap(state->sceneGiSSBO_A, state->sceneGiSSBO_B); // ping pong accumalation.
@@ -544,29 +551,22 @@ void UpdateFrameBuffer(AppState *state)
     rlDisableShader();
 }
 
-void UpdateGui(AppState *state)
+void DrawMouseInfo(AppState *state)
 {
     if (IsCursorOnScreen())
     {
-        // void* data;
-        // data = rlReadTexturePixels(state->sceneSdfTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32);
-        // state->distClosestSurface = *(float*)(data);
-
-        // data = rlReadTexturePixels(state->sceneNormalsTex, GetMouseX(), GetMouseY(), RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32);
-        
-        // state->normals = *(Vector3*)(data);
-
         DrawCircleLines(GetMouseX(), GetMouseY(), state->distClosestSurface, RED);
         DrawCircle(GetMouseX(), GetMouseY(), 2, RED);
     }
+}
 
-    Vector2 anchor = Vector2({10, 10});
-
+void DrawInfoPanel(AppState *state)
+{
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 100);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, 100);
+    Vector2 anchor = Vector2({10, 10});
     GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 200, 180}, "Info Panel");
     anchor.y += 20;
-    // GuiLabel((Rectangle){anchor.x, anchor.y, 300, 20}, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     GuiLabel((Rectangle){anchor.x, anchor.y + 20-20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
     GuiLabel((Rectangle){anchor.x, anchor.y + 40-20, 300, 20}, TextFormat("%s %f, %s %.2f %.2f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
     GuiLabel((Rectangle){anchor.x, anchor.y + 60-20, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
@@ -574,12 +574,22 @@ void UpdateGui(AppState *state)
     GuiLabel((Rectangle){anchor.x, anchor.y + 100-20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
     GuiLabel((Rectangle){anchor.x, anchor.y + 120-20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
     GuiLabel((Rectangle){anchor.x, anchor.y + 140-20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
+}
 
-    // DrawRectangle(0, GetScreenHeight()-12, GetScreenWidth(), 12, {0, 0, 0, 200});
-
+void DrawProgressBar(AppState *state)
+{
     float render_progress = (float)state->samplesCurr / state->samplesMax;
     GuiProgressBar((Rectangle){12, GetScreenHeight() - 12 * 2, GetScreenWidth() - 12 * 2, 12}, "", "", &render_progress, 0.0f, 1.0f);
 }
+
+
+void UpdateGui(AppState *state)
+{
+    DrawMouseInfo(state);
+    DrawInfoPanel(state);
+    DrawProgressBar(state);
+}
+
 
 void UpdateInput(AppState *state)
 {
@@ -622,13 +632,14 @@ void UpdateState(AppState *state)
     switch (state->mode)
     {
     case Mode::RUNNING:
+        // SetTargetFPS(0);
         RunRenderPipeline(state);
         state->timeElapsed = GetTime() - state->timeInitial;
         state->samplesCurr++;
         break;
 
     case Mode::RESTART:
-        TraceLog(LOG_INFO, "Renderer restarted");
+        TraceLog(LOG_INFO, "Renderer restarting...");
         RestartRenderer(state);
         state->mode = RUNNING;
         break;
@@ -653,8 +664,13 @@ void UpdateState(AppState *state)
         state->mode = FINISHED;
     }
 
+    if(state->mode != RUNNING)
+    {
+        // SetTargetFPS(DEFAULT_REFRESH_RATE);
+    }
+
     state->frameTime = GetFrameTime();
-    state->mousePos = GetMousePosition();
+    state->mousePos = GetMousePosition() - Vector2{0, static_cast<float>(state->width)}; // 0, 0 bottom left
     state->fps = GetFPS();
 }
 
@@ -671,18 +687,15 @@ AppState state;
 
 int main(void)
 {
+
     CreateAppState(&state);
-
     InitWindow(state.width, state.height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
-    SetTargetFPS(120);
-
-    SearchAndSetResourceDir("resources");
-    GuiLoadStyle("styles/style_darker.rgs");
-
+    SetConfigFlags(DEFAULT_CONFIG_FLAGS);
+    SearchAndSetResourceDir(DEFAULT_RESOURCE_FOLDER);
+    GuiLoadStyle(DEFAULT_GUI_STYLE);
     HideCursor();
 
     CreateRenderPipeline(&state);
-
     /* -------------------------------- Main Loop ------------------------------- */
     while (!WindowShouldClose())
     {

@@ -2,20 +2,21 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1) uniform sampler2D sdfTex;
-layout(binding = 2) uniform sampler2D normalsTex;
+layout(binding = 1) uniform sampler2D colorMaskTex;
+layout(binding = 2) uniform sampler2D sdfTex;
+layout(binding = 3) uniform sampler2D normalsTex;
 
-layout(std430, binding = 3) buffer rayCountLayout
+layout(std430, binding = 4) buffer rayCountLayout
 {
     uint rayCountBuffer;
 };
 
-layout(std430, binding = 4) writeonly buffer sceneGiALayout
+layout(std430, binding = 5) writeonly buffer sceneGiALayout
 {
     vec3 sceneGiBufferA[];
 };
 
-layout(std430, binding = 5) readonly buffer sceneGiBLayout
+layout(std430, binding = 6) readonly buffer sceneGiBLayout
 {
     vec3 sceneGiBufferB[];
 };
@@ -79,6 +80,11 @@ float Attenuation_simple(float d)
     return clamp(1.0 / (d * d), 0.0, 1.0);
 }
 
+void Scene(in vec2 pos, out vec3 color, out float d)
+{
+    color = texture(colorMaskTex, pos).rgb;
+    d = texture(sdfTex, pos).r;
+}
 
 bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
 {    
@@ -98,10 +104,10 @@ bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
             return true;
         }
         td += d;
-
     }
     return false;
 }
+
 
 void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
 {
@@ -116,7 +122,7 @@ void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
 
 void GenBounceRay(inout vec2 pos, inout vec2 dir)
 {
-    vec2 normal = GetSceneNormal(pos);
+    vec2 normal = texture(normalsTex, pos).xy;
     pos += normal * EPSILON;
     
     vec2 seed = pos + hash(vec2(float(samplesCurr), time));
@@ -127,11 +133,11 @@ void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
     vec2 uv = (vec2(st) + 0.5) / vec2(resolution);
-    uv = uv * 2.0 - 1.0;
-    uv.x *= float(resolution.x) / float(resolution.y);
+    // uv = uv * 2.0 - 1.0;
+    // uv.x *= float(resolution.x) / float(resolution.y);
 
     vec2 cameraPos = vec2(0.0, 0.0);
-    float cameraZoom = .1;
+    float cameraZoom = 1.;
 
     uv = (uv - cameraPos) / cameraZoom;
     
