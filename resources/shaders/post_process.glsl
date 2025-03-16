@@ -17,7 +17,7 @@ layout(std430, binding = 3) writeonly buffer finalPassLayout
 uniform ivec2 resolution;
 uniform uint samples;
 
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(st) (st.x)+resolution.x*(st.y)
 
 vec3 gammaCorrect(vec3 color, float gamma)
 {
@@ -61,14 +61,15 @@ vec3 ToneMap_Uncharted2(vec3 color, float exposure)
     
     return mapped * whiteScale;
 }
-
+#define MAX_BOUNCE 5.
 void main() 
 {
-    vec2 uv = gl_GlobalInvocationID.xy;
-    uint idx = getIdx(ivec2(uv));
+    vec2 st = gl_GlobalInvocationID.xy;
+    vec2 texelSize = 1. / vec2(resolution);
+    uint idx = getIdx(ivec2(st));
 
-    vec3 col = sceneGiBuffer[idx];
-    col = ToneMap_Uncharted2(col, .5);
+    vec3 col = mix(sceneGiBuffer[idx] / MAX_BOUNCE, texture(colorMaskTex, st * texelSize).rgb * MAX_BOUNCE,  texture(colorMaskTex, st * texelSize).a);
+    col = ToneMap_Uncharted2(col, 1.);
     col = LinearToSRGB(col);
 
     finalPassBuffer[idx] = col;

@@ -51,7 +51,7 @@ void main()
 
 			float dist = length(uv - samplePos.xy);
 
-			if( samplePos.z > 0.5 && (dist < jfaOut.w || jfaOut.z <= 0.5))
+			if( samplePos.z == 1.0 && (dist < jfaOut.w || jfaOut.z != 1.0))
 			{
 				jfaOut.xy = samplePos.xy;
 				jfaOut.z = 1.0;

@@ -112,7 +112,6 @@ void main()
             pos +=  dir * d;
 
             if(out_of_bound(ivec2(pos)))
-
                 break;
 
             // Hit
@@ -124,7 +123,6 @@ void main()
             
             totalDist += d;
             if (totalDist > INF) 
-
                 break;
         }
 
@@ -147,10 +145,8 @@ void main()
         {
             contribution += vec3(0.5, 0., 0.);
         }
-
-
     }
-    
+
     if(samplesCurr > 0)
     {
         contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);

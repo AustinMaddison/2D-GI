@@ -26,11 +26,11 @@ uniform ivec2 resolution;
 uniform uint samplesCurr;
 uniform float time;
 
-#define INF 1e9
+#define INF 1E4
 #define PI 3.14159265359
-#define EPSILON 0.01
+#define EPSILON 1E-9
 #define MAX_STEPS 100
-#define MAX_BOUNCE 5
+#define MAX_BOUNCE 8
 
 #define getIdx(uv) (uv.x)+resolution.x*(uv.y)
 
@@ -61,7 +61,7 @@ vec2 RandomUnitHfCircleDir(vec2 normal, vec2 p)
 
 bool OutOfBounds(vec2 pos)
 {
-    vec2 bound = vec2(float(resolution.x) / float(resolution.y), 1.0) * 10.;
+    vec2 bound = vec2(float(resolution.x) / float(resolution.y), 1.1);
     if (pos.x < -bound.x) return true;
     if (pos.y < -bound.y) return true;
     if (pos.x >= bound.x) return true;
@@ -82,7 +82,8 @@ float Attenuation_simple(float d)
 
 void Scene(in vec2 pos, out vec3 color, out float d)
 {
-    color = texture(colorMaskTex, pos).rgb;
+    vec4 colorMask = texture(colorMaskTex, pos);
+    color = colorMask.rgb * colorMask.a;
     d = texture(sdfTex, pos).r;
 }
 
@@ -108,7 +109,6 @@ bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
     return false;
 }
 
-
 void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
 {
     vec2 o;
@@ -123,7 +123,7 @@ void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
 void GenBounceRay(inout vec2 pos, inout vec2 dir)
 {
     vec2 normal = texture(normalsTex, pos).xy;
-    pos += normal * EPSILON;
+    pos += normal * 1E-4;
     
     vec2 seed = pos + hash(vec2(float(samplesCurr), time));
     dir = RandomUnitHfCircleDir(normal, seed);
@@ -164,10 +164,6 @@ void main()
     {
         contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(st)] * float(samplesCurr - 1))) / float(samplesCurr);
     }
-
-    float d;
-    vec3 color;
-    Scene(uv, color, d);
 
     sceneGiBufferA[getIdx(st)] = contribution;
     // sceneGiBufferA[getIdx(st)] = vec3(GetSceneNormal(uv), 0.);

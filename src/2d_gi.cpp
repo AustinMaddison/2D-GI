@@ -251,7 +251,8 @@ void CreateRenderPipeline(AppState *state)
 
     // Load images into OpenGl Textures
     // Image sceneImg = LoadImage("textures/test_flood_fill_box.png");
-    Image sceneImg = LoadImage("textures/test_flood_fill.png");
+    // Image sceneImg = LoadImage("textures/test_flood_fill.png");
+    Image sceneImg = LoadImage("textures/bitmap.png");
     ImageFlipVertical(&sceneImg);
     ImageFormat(&sceneImg, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
@@ -373,8 +374,6 @@ void SaveImage(AppState *state)
     TraceLog(LOG_INFO, "Image saved to %s", filename);
     UnloadRenderTexture(renderTexTarget);
 }
-
-
 
 void RunJumpFloodAlgorithm(AppState *state)
 {
@@ -689,8 +688,8 @@ int main(void)
 {
 
     CreateAppState(&state);
-    InitWindow(state.width, state.height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     SetConfigFlags(DEFAULT_CONFIG_FLAGS);
+    InitWindow(state.width, state.height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     SearchAndSetResourceDir(DEFAULT_RESOURCE_FOLDER);
     GuiLoadStyle(DEFAULT_GUI_STYLE);
     HideCursor();
