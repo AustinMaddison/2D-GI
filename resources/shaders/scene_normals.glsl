@@ -6,9 +6,9 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 1, r32f) uniform image2D sdfImage;
 layout(binding = 2, rgba32f) uniform image2D normalsImage;
 
-uniform ivec2 resolution;
+uniform ivec2 uResolution;
 
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
 vec2 getNormal(ivec2 uv)
 {
@@ -25,7 +25,7 @@ vec2 getNormal(ivec2 uv)
 void main() 
 {
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-    vec2 texelSize = 1.0 / vec2(resolution);
+    vec2 texelSize = 1.0 / vec2(uResolution);
 
     // extra samples to make smooth
     // const float diag_w = sqrt(2.0) / (4.0 + 4.0 * sqrt(2.0));  // Diagonal weight

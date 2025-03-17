@@ -223,7 +223,7 @@ void CreateRenderPipeline(AppState *state)
 
     for (auto prog : programs)
     {
-        state->resolutionUniformLocs[prog] = rlGetLocationUniform(prog, "resolution");
+        state->resolutionUniformLocs[prog] = rlGetLocationUniform(prog, "uResolution");
     }
 
     programs = {
@@ -232,7 +232,7 @@ void CreateRenderPipeline(AppState *state)
 
     for (auto prog : programs)
     {
-        state->mouseUniformLocs[prog] = rlGetLocationUniform(prog, "mouse");
+        state->mouseUniformLocs[prog] = rlGetLocationUniform(prog, "uMousePos");
     }
 
     programs = {
@@ -243,8 +243,8 @@ void CreateRenderPipeline(AppState *state)
 
     for (auto prog : programs)
     {
-        state->sampleCurrUniformLocs[prog] = rlGetLocationUniform(prog, "samplesCurr");
-        state->timeUniformLocs[prog] = rlGetLocationUniform(prog, "time");
+        state->sampleCurrUniformLocs[prog] = rlGetLocationUniform(prog, "uSamples");
+        state->timeUniformLocs[prog] = rlGetLocationUniform(prog, "uTime");
     }
 
     /* ----------------------------- Create Textures ---------------------------- */
@@ -390,7 +390,7 @@ void RunJumpFloodAlgorithm(AppState *state)
 
     int stepWidth = std::max(state->width, state->height)/2;
     int iterations = ceil(log2(std::max(state->width, state->height)));
-    uint stepWidthLocs =  rlGetLocationUniform(state->jfaIterationProgram, "stepWidth");
+    uint stepWidthLocs =  rlGetLocationUniform(state->jfaIterationProgram, "uStepWidth");
     
     rlEnableShader(state->jfaIterationProgram);
     for (int i = 0; i < iterations; i++)

@@ -6,10 +6,10 @@ layout(binding = 1) uniform sampler2D colorMaskTex;
 layout(binding = 2, r32f) uniform image2D sdfImage;
 layout(binding = 3) uniform sampler2D jfaTex;
 
-uniform ivec2 resolution;
+uniform ivec2 uResolution;
 
 #define INF 1E9
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
 // SDF Functions
 // source: https://iquilezles.org/articles/distfunctions2d/
@@ -96,11 +96,11 @@ uniform ivec2 resolution;
 void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
-    vec2 texelSize = 1.0 / vec2(resolution);
+    vec2 texelSize = 1.0 / vec2(uResolution);
 
-    // vec2 uv = (vec2(st) + 0.5) / vec2(resolution);
+    // vec2 uv = (vec2(st) + 0.5) / vec2(uResolution);
     // uv = uv * 2.0 - 1.0;
-    // uv.x *= float(resolution.x) / float(resolution.y);
+    // uv.x *= float(uResolution.x) / float(uResolution.y);
 
     imageStore(sdfImage, st, vec4(length(texture(jfaTex, st * texelSize).rg - st * texelSize)));
 }

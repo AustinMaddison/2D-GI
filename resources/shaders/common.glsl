@@ -1,6 +1,6 @@
 #define INF 1e6
 #define PI 3.14159265359
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
 // Random Numbers
 // https://suricrasia.online/blog/shader-functions/
@@ -31,8 +31,8 @@ bool out_of_bound(ivec2 p)
 {
     if (p.x < 0) return true;
     if (p.y < 0) return true;
-    if (p.x >= resolution.x) return true;
-    if (p.y >= resolution.y) return true;
+    if (p.x >= uResolution.x) return true;
+    if (p.y >= uResolution.y) return true;
     return false;
 }
 

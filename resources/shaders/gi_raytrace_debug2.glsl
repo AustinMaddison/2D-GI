@@ -27,8 +27,8 @@ layout(std430, binding = 5) readonly buffer sceneGiBLayout
     vec3 sceneGiBufferB[];   
 };
 
-uniform ivec2 resolution;
-uniform uint samplesCurr;
+uniform ivec2 uResolution;
+uniform uint uSamples;
 
 #define INF 1e6
 #define PI 3.14159265359
@@ -36,7 +36,7 @@ uniform uint samplesCurr;
 #define MAX_STEPS 100
 #define MAX_BOUNCE 3
 
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
@@ -66,8 +66,8 @@ bool out_of_bound(ivec2 p)
 {
     if (p.x < 0) return true;
     if (p.y < 0) return true;
-    if (p.x >= resolution.x) return true;
-    if (p.y >= resolution.y) return true;
+    if (p.x >= uResolution.x) return true;
+    if (p.y >= uResolution.y) return true;
     return false;
 }
 
@@ -92,14 +92,14 @@ void main()
     ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
     
     // generate ray
-    vec2 jitter = rnd_unit_vec2(vec2(samplesCurr, samplesCurr)) * 1.0;
+    vec2 jitter = rnd_unit_vec2(vec2(uSamples, uSamples)) * 1.0;
     vec2 origin = vec2(uv) + jitter;
-    vec2 seed = uv + hash(vec2(samplesCurr, samplesCurr));
+    vec2 seed = uv + hash(vec2(uSamples, uSamples));
     vec2 dir = rnd_unit_vec2(seed);
     
     float totalDist = 0.0;
     vec3 contribution = vec3(0.0f);
-    float scale = resolution.x;
+    float scale = uResolution.x;
     float lightIntensity = 0.33;
     
     for (int b = 0; b < MAX_BOUNCE; b++)
@@ -147,9 +147,9 @@ void main()
         }
     }
 
-    if(samplesCurr > 0)
+    if(uSamples > 0)
     {
-        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(samplesCurr-1))) / float(samplesCurr);
+        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(uv)] * float(uSamples-1))) / float(uSamples);
     }
 
     sceneGiBufferA[getIdx(uv)] = contribution;

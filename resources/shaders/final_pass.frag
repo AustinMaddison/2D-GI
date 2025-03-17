@@ -13,18 +13,18 @@ layout(binding = 5) uniform sampler2D jfaTex;
 in vec2 fragTexCoord;
 out vec4 fragColor;
 
-uniform ivec2 resolution;
-uniform float time;
+uniform ivec2 uResolution;
+uniform float uTime;
 
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
-ivec2 flipUV(ivec2 uv, ivec2 resolution) {
-    return ivec2(uv.x, resolution.y - uv.y - 1);
+ivec2 flipUV(ivec2 uv, ivec2 uResolution) {
+    return ivec2(uv.x, uResolution.y - uv.y - 1);
 }
 
 void main()
 {
-    ivec2 uv = ivec2(fragTexCoord*resolution);
+    ivec2 uv = ivec2(fragTexCoord*uResolution);
     uint idx = getIdx(uv);
 
     // fragColor = vec4(fragTexCoord, 0., 1.0f);
@@ -32,10 +32,10 @@ void main()
     vec3 col;
 
     // col = texture(colorMaskTex, fragTexCoord).rgb;
-    // col = vec3(texture(sdfTex, fragTexCoord)/float(resolution.x));
+    // col = vec3(texture(sdfTex, fragTexCoord)/float(uResolution.x));
     // col = vec3(texture(normalsTex, fragTexCoord).rg, 0.);
     col = vec3(finalPassBuffer[getIdx(uv)]);
-    // float sdf = smoothstep(1.0f - (sin(time)*.5+0.5), -0.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
+    // float sdf = smoothstep(1.0f - (sin(uTime)*.5+0.5), -0.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
     // float sdf = smoothstep(1., -0.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
     // col = vec3(texture(jfaTex, fragTexCoord).rg, 0.);
     fragColor = vec4(col, 1.0f);

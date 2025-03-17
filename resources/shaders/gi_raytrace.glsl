@@ -21,10 +21,10 @@ layout(std430, binding = 6) readonly buffer sceneGiBLayout
     vec3 sceneGiBufferB[];
 };
 
-uniform ivec2 resolution;
-// uniform ivec2 resolution;
-uniform uint samplesCurr;
-uniform float time;
+uniform ivec2 uResolution;
+// uniform ivec2 uResolution;
+uniform uint uSamples;
+uniform float uTime;
 
 #define INF 1E4
 #define PI 3.14159265359
@@ -32,7 +32,7 @@ uniform float time;
 #define MAX_STEPS 100
 #define MAX_BOUNCE 8
 
-#define getIdx(uv) (uv.x)+resolution.x*(uv.y)
+#define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
 // https://suricrasia.online/blog/shader-functions/
 #define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
@@ -61,7 +61,7 @@ vec2 RandomUnitHfCircleDir(vec2 normal, vec2 p)
 
 bool OutOfBounds(vec2 pos)
 {
-    vec2 bound = vec2(float(resolution.x) / float(resolution.y), 1.1);
+    vec2 bound = vec2(float(uResolution.x) / float(uResolution.y), 1.1);
     if (pos.x < -bound.x) return true;
     if (pos.y < -bound.y) return true;
     if (pos.x >= bound.x) return true;
@@ -112,11 +112,11 @@ bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
 void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
 {
     vec2 o;
-    o = vec2(hash01(uv + time), hash01(uv - time)) * EPSILON;
+    o = vec2(hash01(uv + uTime), hash01(uv - uTime)) * EPSILON;
     o = vec2(0.f);
     pos = uv + o;
 
-    vec2 seed = pos + hash(vec2(float(samplesCurr), time));
+    vec2 seed = pos + hash(vec2(float(uSamples), uTime));
     dir = RandomUnitCircleDir(seed);
 }
 
@@ -125,16 +125,16 @@ void GenBounceRay(inout vec2 pos, inout vec2 dir)
     vec2 normal = texture(normalsTex, pos).xy;
     pos += normal * 1E-4;
     
-    vec2 seed = pos + hash(vec2(float(samplesCurr), time));
+    vec2 seed = pos + hash(vec2(float(uSamples), uTime));
     dir = RandomUnitHfCircleDir(normal, seed);
 }
 
 void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
-    vec2 uv = (vec2(st) + 0.5) / vec2(resolution);
+    vec2 uv = (vec2(st) + 0.5) / vec2(uResolution);
     // uv = uv * 2.0 - 1.0;
-    // uv.x *= float(resolution.x) / float(resolution.y);
+    // uv.x *= float(uResolution.x) / float(uResolution.y);
 
     vec2 cameraPos = vec2(0.0, 0.0);
     float cameraZoom = 1.;
@@ -160,9 +160,9 @@ void main()
         GenBounceRay(pos, dir);
     }
 
-    if (samplesCurr > 0)
+    if (uSamples > 0)
     {
-        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(st)] * float(samplesCurr - 1))) / float(samplesCurr);
+        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(st)] * float(uSamples - 1))) / float(uSamples);
     }
 
     sceneGiBufferA[getIdx(st)] = contribution;
