@@ -38,13 +38,14 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 #define DEFAULT_RESOURCE_FOLDER "resources"
 #define DEFAULT_GUI_STYLE "styles/style_darker.rgs"
 #define DEFAULT_CONFIG_FLAGS FLAG_WINDOW_RESIZABLE
-#define DEFAULT_WIDTH 512  
-#define DEFAULT_HEIGHT 512
+#define DEFAULT_WIDTH 1280
+#define DEFAULT_HEIGHT 720
 #define DEFAULT_REFRESH_RATE 60
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
 #define DEFAULT_SAMPLES_MAX 4096
+
 
 enum GiRendererType
 {
@@ -62,22 +63,40 @@ enum Mode
     FINISHED
 };
 
+enum FrambufferOutputType
+{
+    FINAL,
+    DEBUG_COLOR,
+    DEBUG_MASK,
+    DEBUG_COLOR_MASK,
+    DEBUG_JFA,
+    DEBUG_SDF,
+    DEBUG_NORMAL,
+    DEBUG_GI,
+    DEBUG_COMPOSITE
+};
 
 typedef struct
 {
     /* ---------------------------------- State --------------------------------- */
     GiRendererType rendererType;
+    FrambufferOutputType oututType;
     Mode mode;
     uint samplesCurr;
     uint samplesMax;
     double timeInitial;
     double timeElapsed;
 
-    bool isSceneChanged;
+    bool isDirty;
 
-    int width;
-    int height;
-    Vector2 mousePos;
+    Vector2 windowSize;
+    Vector2 sceneSize;
+
+    bool isPanning;
+    Vector2 mousePosCurr;
+    Vector2 mousePosPrev;
+    Vector2 cameraPos;
+    float cameraZoom;
 
     /* --------------------------------- Metrics -------------------------------- */
     float frameTime; // ms
@@ -108,7 +127,7 @@ typedef struct
 
     /* ---------------------------------- SBBOs --------------------------------- */
 
-    uint rayCountSSBO; // TODO: add to renderer.
+    uint rayCountSSBO;  // TODO: add to renderer.
     uint sceneGiSSBO_A; // TODO: just accumulate on 1 buffer
     uint sceneGiSSBO_B;
     uint finalPassSSBO;
@@ -117,6 +136,7 @@ typedef struct
     std::map<uint, uint> sampleCurrUniformLocs;
     std::map<uint, uint> resolutionUniformLocs;
     std::map<uint, uint> mouseUniformLocs;
+    std::map<uint, uint> modelUnifromLocs;
     std::map<uint, uint> timeUniformLocs;
 } AppState;
 
@@ -129,12 +149,18 @@ void CreateAppState(AppState *state)
     state->timeInitial = GetTime();
     state->timeElapsed = 0;
 
-    state->isSceneChanged = true;
+    state->isDirty = true;
 
-    state->width = DEFAULT_WIDTH;
-    state->height = DEFAULT_HEIGHT;
+    state->windowSize = Vector2({DEFAULT_WIDTH, DEFAULT_HEIGHT});
 
-    state->mousePos = Vector2({0, 0});
+    state->sceneSize = Vector2({DEFAULT_WIDTH, DEFAULT_HEIGHT});
+
+    state->isPanning = false;
+    state->mousePosCurr = Vector2Zero();
+    state->mousePosPrev = Vector2Zero();
+
+    state->cameraPos = Vector2Zero();
+    state->cameraZoom = 1.0;
 
     state->frameTime = 0;
     state->fps = 0;
@@ -207,19 +233,18 @@ void CreateRenderPipeline(AppState *state)
     state->finalPassProgram = rlLoadShaderProgram(vertShader, fragShader);
 
     /* -------------------------- Get Uniform Locations ------------------------- */
-    auto programs = 
-    {
-        state->jfaSetSeedProgram,
-        state->jfaIterationProgram,
-        state->sceneSdfProgram,
-        state->sceneSdfProgram,
-        state->giRayTraceProgram,
-        state->giRadianceProbesProgram,
-        state->giRadianceCascadesProgram,
-        state->sceneNormalsProgram,
-        state->postProcessProgram,
-        state->finalPassProgram
-    };
+    auto programs =
+        {
+            state->jfaSetSeedProgram,
+            state->jfaIterationProgram,
+            state->sceneSdfProgram,
+            state->sceneSdfProgram,
+            state->giRayTraceProgram,
+            state->giRadianceProbesProgram,
+            state->giRadianceCascadesProgram,
+            state->sceneNormalsProgram,
+            state->postProcessProgram,
+            state->finalPassProgram};
 
     for (auto prog : programs)
     {
@@ -247,6 +272,15 @@ void CreateRenderPipeline(AppState *state)
         state->timeUniformLocs[prog] = rlGetLocationUniform(prog, "uTime");
     }
 
+    programs = {
+        state->finalPassProgram,
+    };
+
+    for (auto prog : programs)
+    {
+        state->mouseUniformLocs[prog] = rlGetLocationUniform(prog, "uModel");
+    }
+
     /* ----------------------------- Create Textures ---------------------------- */
 
     // Load images into OpenGl Textures
@@ -256,19 +290,20 @@ void CreateRenderPipeline(AppState *state)
     ImageFlipVertical(&sceneImg);
     ImageFormat(&sceneImg, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
-    state->sceneColorMaskTex = rlLoadTexture(sceneImg.data, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-    state->jfaTex_A = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-    state->jfaTex_B = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-    state->sceneSdfTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32, 1);
-    state->sceneNormalsTex = rlLoadTexture(NULL, state->width, state->height, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    state->sceneSize = Vector2({(float)sceneImg.width, (float)sceneImg.height});
+
+    state->sceneColorMaskTex = rlLoadTexture(sceneImg.data, state->sceneSize.x, state->sceneSize.y, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    state->jfaTex_A = rlLoadTexture(NULL, state->sceneSize.x, state->sceneSize.y, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    state->jfaTex_B = rlLoadTexture(NULL, state->sceneSize.x, state->sceneSize.y, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    state->sceneSdfTex = rlLoadTexture(NULL, state->sceneSize.x, state->sceneSize.y, RL_PIXELFORMAT_UNCOMPRESSED_R32, 1);
+    state->sceneNormalsTex = rlLoadTexture(NULL, state->sceneSize.x, state->sceneSize.y, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
 
     auto textures = {
         state->sceneColorMaskTex,
         state->jfaTex_A,
         state->jfaTex_B,
         state->sceneSdfTex,
-        state->sceneNormalsTex
-    };
+        state->sceneNormalsTex};
 
     for (auto tex : textures)
     {
@@ -277,10 +312,10 @@ void CreateRenderPipeline(AppState *state)
         rlTextureParameters(tex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_BILINEAR);
         rlTextureParameters(tex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_BILINEAR);
     }
-    
+
     /* ------------------------------ Create SSBOs ------------------------------ */
 
-    uint size = state->width * state->height;
+    uint size = state->sceneSize.x * state->sceneSize.y;
     state->rayCountSSBO = rlLoadShaderBuffer(sizeof(GLuint), NULL, RL_DYNAMIC_COPY);
     uint zero = 0;
     rlUpdateShaderBuffer(state->rayCountSSBO, &zero, sizeof(GLuint), 0);
@@ -301,10 +336,9 @@ void DeleteRenderPipeline(AppState *state)
         state->giRadianceCascadesProgram,
         state->sceneNormalsProgram,
         state->postProcessProgram,
-        state->finalPassProgram
-    };
+        state->finalPassProgram};
 
-    for(auto id : ids)
+    for (auto id : ids)
     {
         rlUnloadShaderProgram(id);
     }
@@ -312,10 +346,9 @@ void DeleteRenderPipeline(AppState *state)
     ids = {
         state->sceneGiSSBO_A,
         state->sceneGiSSBO_B,
-        state->finalPassSSBO
-    };
+        state->finalPassSSBO};
 
-    for(auto id : ids)
+    for (auto id : ids)
     {
         rlUnloadShaderBuffer(id);
     }
@@ -323,12 +356,11 @@ void DeleteRenderPipeline(AppState *state)
     ids = {
         state->sceneColorMaskTex,
         state->jfaTex_A,
-        state->jfaTex_B,       
+        state->jfaTex_B,
         state->sceneSdfTex,
-        state->sceneNormalsTex
-    };
+        state->sceneNormalsTex};
 
-    for(auto id : ids)
+    for (auto id : ids)
     {
         rlUnloadTexture(id);
     }
@@ -354,7 +386,7 @@ const char *GetTimeStamp()
 
 void SaveImage(AppState *state)
 {
-    RenderTexture2D renderTexTarget = LoadRenderTexture(state->width, state->height);
+    RenderTexture2D renderTexTarget = LoadRenderTexture(state->sceneSize.x, state->sceneSize.y);
 
     BeginTextureMode(renderTexTarget);
     rlEnableShader(state->finalPassProgram);
@@ -381,17 +413,17 @@ void RunJumpFloodAlgorithm(AppState *state)
     rlEnableShader(state->jfaSetSeedProgram);
     rlBindImageTexture(state->sceneColorMaskTex, 1, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, true);
     rlBindImageTexture(state->jfaTex_A, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
-    rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+    rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-    
+
     /* --------------------------- Iterate Jump Flood --------------------------- */
 
-    int stepWidth = std::max(state->width, state->height)/2;
-    int iterations = ceil(log2(std::max(state->width, state->height)));
-    uint stepWidthLocs =  rlGetLocationUniform(state->jfaIterationProgram, "uStepWidth");
-    
+    int stepWidth = std::max(state->sceneSize.x, state->sceneSize.y) / 2;
+    int iterations = ceil(log2(std::max(state->sceneSize.x, state->sceneSize.y)));
+    uint stepWidthLocs = rlGetLocationUniform(state->jfaIterationProgram, "uStepWidth");
+
     rlEnableShader(state->jfaIterationProgram);
     for (int i = 0; i < iterations; i++)
     {
@@ -399,10 +431,10 @@ void RunJumpFloodAlgorithm(AppState *state)
         rlEnableTexture(state->jfaTex_A);
         rlBindImageTexture(state->jfaTex_B, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
         rlSetUniform(stepWidthLocs, &stepWidth, RL_SHADER_UNIFORM_INT, 1);
-        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+        rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         std::swap(state->jfaTex_A, state->jfaTex_B);
-        stepWidth /=2;
+        stepWidth /= 2;
     }
     rlDisableShader();
 }
@@ -419,10 +451,9 @@ void RunRenderPipeline(AppState *state)
         state->giRadianceCascadesProgram,
         state->sceneNormalsProgram,
         state->postProcessProgram,
-        state->finalPassProgram
-    };
+        state->finalPassProgram};
 
-    int data[2] = {state->width, state->height};
+    int data[2] = {state->sceneSize.x, state->sceneSize.y};
     for (auto prog : programs)
     {
         rlEnableShader(prog);
@@ -433,7 +464,7 @@ void RunRenderPipeline(AppState *state)
     programs = {
         state->giRayTraceProgram};
 
-    int data2[2] = {state->mousePos.x, state->mousePos.y};
+    int data2[2] = {state->mousePosCurr.x, state->mousePosCurr.y};
     for (auto prog : programs)
     {
         rlEnableShader(prog);
@@ -447,19 +478,19 @@ void RunRenderPipeline(AppState *state)
         state->giRadianceProbesProgram,
         state->giRadianceCascadesProgram};
 
-    float timeElapsed = (float)state->timeElapsed;
     for (auto prog : programs)
     {
         rlEnableShader(prog);
         rlSetUniform(state->sampleCurrUniformLocs[prog], &(state->samplesCurr), SHADER_UNIFORM_UINT, 1);
+
+        float timeElapsed = static_cast<float>(state->timeElapsed);
         rlSetUniform(state->timeUniformLocs[prog], &timeElapsed, SHADER_UNIFORM_FLOAT, 1);
         rlDisableShader();
     }
 
     /* ------------------------ Dispatch compute shaders ------------------------ */
 
-
-    if (state->isSceneChanged)
+    if (state->isDirty)
     {
         // Compute Jump Flood
         RunJumpFloodAlgorithm(state);
@@ -471,7 +502,7 @@ void RunRenderPipeline(AppState *state)
         rlBindImageTexture(state->sceneSdfTex, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32, false);
         rlActiveTextureSlot(3);
         rlEnableTexture(state->jfaTex_A);
-        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+        rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
         rlDisableShader();
 
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -482,10 +513,10 @@ void RunRenderPipeline(AppState *state)
         // rlEnableTexture(state->sceneSdfTex);
         rlBindImageTexture(state->sceneSdfTex, 1, RL_PIXELFORMAT_UNCOMPRESSED_R32, true);
         rlBindImageTexture(state->sceneNormalsTex, 2, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
-        rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+        rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
         rlDisableShader();
-    
-        state->isSceneChanged = false;
+
+        state->isDirty = false;
     }
 
     uint giProgramChosen;
@@ -515,7 +546,7 @@ void RunRenderPipeline(AppState *state)
     rlBindShaderBuffer(state->rayCountSSBO, 4);
     rlBindShaderBuffer(state->sceneGiSSBO_A, 5);
     rlBindShaderBuffer(state->sceneGiSSBO_B, 6);
-    rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+    rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
     std::swap(state->sceneGiSSBO_A, state->sceneGiSSBO_B); // ping pong accumalation.
 
@@ -525,14 +556,23 @@ void RunRenderPipeline(AppState *state)
     rlEnableTexture(state->sceneColorMaskTex);
     rlBindShaderBuffer(state->sceneGiSSBO_A, 2);
     rlBindShaderBuffer(state->finalPassSSBO, 3);
-    rlComputeShaderDispatch(state->width / COMPUTE_SHADER_DISPATCH_X, state->height / COMPUTE_SHADER_DISPATCH_Y, 1);
+    rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
 }
 
 void UpdateFrameBuffer(AppState *state)
 {
+    // set camera
+    float resFract = state->windowSize.x / state->windowSize.y; 
+    Matrix posMat = MatrixTranslate(state->cameraPos.x, state->cameraPos.y, 0.0);
+    Matrix zoomScaleMat = MatrixScale(state->cameraZoom, state->cameraZoom, 1.0);
+    Matrix resFractScaleMat = MatrixScale(1.0, resFract, 1.0);
+    Matrix scaleMat = MatrixMultiply(zoomScaleMat, resFractScaleMat);
+    Matrix modelMat = MatrixMultiply(posMat, scaleMat);
 
     rlEnableShader(state->finalPassProgram);
+    rlSetUniformMatrix(state->modelUnifromLocs[state->finalPassProgram], modelMat);
+
     rlBindShaderBuffer(state->finalPassSSBO, 1);
 
     // Attach other textures for debugging
@@ -566,13 +606,14 @@ void DrawInfoPanel(AppState *state)
     Vector2 anchor = Vector2({10, 10});
     GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 200, 180}, "Info Panel");
     anchor.y += 20;
-    GuiLabel((Rectangle){anchor.x, anchor.y + 20-20, 300, 20}, TextFormat("%s %d %d", "MouseXY", GetMouseX(), GetMouseY()));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 40-20, 300, 20}, TextFormat("%s %f, %s %.2f %.2f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 60-20, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 80-20, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 100-20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 120-20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 140-20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes" : "Radiance Cascades"));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 20 - 20, 300, 20}, TextFormat("%s %d %d", "MouseXY", (int)state->mousePosCurr.x, (int)state->mousePosCurr.y));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 40 - 20, 300, 20}, TextFormat("%s %f, %s %.2f %.2f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 60 - 20, 300, 20}, TextFormat("%s %d", "FPS", GetFPS()));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 80 - 20, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 100 - 20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 120 - 20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 140 - 20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : state->rendererType == RADIENCE_PROBES ? "Radiance Probes"
+                                                                                                                                                                                   : "Radiance Cascades"));
 }
 
 void DrawProgressBar(AppState *state)
@@ -581,7 +622,6 @@ void DrawProgressBar(AppState *state)
     GuiProgressBar((Rectangle){12, GetScreenHeight() - 12 * 2, GetScreenWidth() - 12 * 2, 12}, "", "", &render_progress, 0.0f, 1.0f);
 }
 
-
 void UpdateGui(AppState *state)
 {
     DrawMouseInfo(state);
@@ -589,9 +629,16 @@ void UpdateGui(AppState *state)
     DrawProgressBar(state);
 }
 
-
 void UpdateInput(AppState *state)
 {
+    std::swap(state->mousePosCurr, state->mousePosPrev);
+    state->mousePosCurr = Vector2({GetMousePosition().x, static_cast<float>(state->windowSize.y) - GetMousePosition().y});
+
+    if (IsWindowResized())
+    {
+        state->windowSize = Vector2({(float)GetScreenWidth(), (float)GetScreenHeight()});
+    }
+
     if (IsKeyPressed(KEY_F12))
     {
         state->mode = CAPTURE;
@@ -608,6 +655,32 @@ void UpdateInput(AppState *state)
             state->mode = RUNNING;
         else
             state->mode = PAUSED;
+    }
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    {
+        state->isPanning = true;
+    }
+
+    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+    {
+        state->isPanning = false;
+    }
+
+    if(GetMouseWheelMove() != 0)
+    {
+        float zoomFactor = 1.1f;
+        float newZoom = state->cameraZoom * abs(GetMouseWheelMove()) * (GetMouseWheelMove() > 0 ? zoomFactor : 1.0 / zoomFactor);
+        state->cameraZoom = newZoom;
+    }
+
+    if (state->isPanning == true)
+    {
+        Vector2 mousePosDelta = state->mousePosCurr - state->mousePosPrev;
+        float resFract = state->windowSize.x / state->windowSize.y; 
+
+
+        state->cameraPos += ((mousePosDelta / Vector2({1.0, resFract})) / (state->windowSize / 2.0)) / state->cameraZoom;
     }
 
     // if(IsKeyPressed(KEY_F1))
@@ -663,13 +736,13 @@ void UpdateState(AppState *state)
         state->mode = FINISHED;
     }
 
-    if(state->mode != RUNNING)
+    if (state->mode != RUNNING)
     {
         // SetTargetFPS(DEFAULT_REFRESH_RATE);
     }
 
     state->frameTime = GetFrameTime();
-    state->mousePos = GetMousePosition() - Vector2{0, static_cast<float>(state->width)}; // 0, 0 bottom left
+
     state->fps = GetFPS();
 }
 
@@ -686,10 +759,9 @@ AppState state;
 
 int main(void)
 {
-
     CreateAppState(&state);
     SetConfigFlags(DEFAULT_CONFIG_FLAGS);
-    InitWindow(state.width, state.height, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
+    InitWindow(state.windowSize.x, state.windowSize.y, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     SearchAndSetResourceDir(DEFAULT_RESOURCE_FOLDER);
     GuiLoadStyle(DEFAULT_GUI_STYLE);
     HideCursor();
