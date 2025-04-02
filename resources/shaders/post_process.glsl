@@ -68,7 +68,8 @@ void main()
     uint idx = getIdx(ivec2(st));
 
     vec3 col = mix(sceneGiBuffer[idx] / float(MAX_BOUNCE), texture(colorMaskTex, st * texelSize).rgb * float(MAX_BOUNCE),  texture(colorMaskTex, st * texelSize).a);
-    col = ToneMap_Uncharted2(col, 2.);
+    // vec3 col = sceneGiBuffer[idx] / float(MAX_BOUNCE);
+    col = ToneMap_Uncharted2(col, 1.);
     col = LinearToRGB(col);
 
     finalPassBuffer[idx] = col;

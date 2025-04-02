@@ -465,7 +465,6 @@ void RunJumpFloodAlgorithm(AppState *state)
     rlDisableShader();
 }
 
-
 void UpdateUniforms(AppState *state)
 {
     /* ------------------------------ Set Uniforms ------------------------------ */

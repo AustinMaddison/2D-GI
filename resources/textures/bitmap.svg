@@ -27,16 +27,17 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="1.634375"
-     inkscape:cx="797.24665"
-     inkscape:cy="275.02868"
+     inkscape:zoom="1.1556776"
+     inkscape:cx="835.00793"
+     inkscape:cy="294.63233"
      inkscape:window-width="1920"
      inkscape:window-height="1131"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer2"
-     showgrid="true">
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:export-bgcolor="#00000000">
     <inkscape:page
        x="0"
        y="0"
@@ -44,7 +45,10 @@
        height="512"
        id="page27"
        margin="0"
-       bleed="0" />
+       bleed="0"
+       inkscape:export-filename="../db3a8132/bitmap.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96" />
     <inkscape:page
        x="522"
        y="0"
@@ -811,6 +815,19 @@
        x2="827.53009"
        y2="62.409176"
        gradientUnits="userSpaceOnUse" />
+    <filter
+       style="color-interpolation-filters:sRGB;"
+       inkscape:label="Blur"
+       id="filter141"
+       x="-0.18888974"
+       y="-0.18888974"
+       width="1.3777795"
+       height="1.3777795">
+      <feGaussianBlur
+         stdDeviation="2 2"
+         result="blur"
+         id="feGaussianBlur141" />
+    </filter>
   </defs>
   <g
      inkscape:label="Layer 1"
@@ -918,6 +935,10 @@
        d="m -241.08435,-13.822815 54.94842,41.970171 39.6067,30.251999 m 17.7652,13.569251 21.84148,16.682739 79.21337,60.503995"
        id="path1"
        sodipodi:nodetypes="cccccc" />
+    <path
+       style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#000000;fill-opacity:1;stroke-width:1;stroke-linecap:round;paint-order:fill markers stroke;enable-background:accumulate;stop-color:#000000"
+       d="M -14.9592,-16.572815 V 495.42718 h 512 V -16.572815 Z m 7.3917228,7.3917229 H 489.64908 V 488.03546 H -7.5674772 Z"
+       id="rect72-3" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -1024,72 +1045,71 @@
        d="m 773.99617,44.053537 50.78394,36.711281"
        id="path83" />
     <path
-       style="fill:#ffffff;fill-opacity:1;stroke:url(#linearGradient95);stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;stroke-opacity:1"
+       style="fill:none;fill-opacity:1;stroke:url(#linearGradient95);stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;stroke-opacity:1"
        d="m 773.99617,44.053537 50.78394,36.711281"
        id="path84" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="Lights" />
-  <circle
-     style="fill:#7de2ff;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
-     id="path75"
-     cx="549.11261"
-     cy="137.00195"
-     r="12.705825" />
-  <circle
-     style="fill:#9ce9ff;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;fill-opacity:1"
-     id="circle75"
-     cx="988.84467"
-     cy="382.83206"
-     r="12.705825" />
-  <circle
-     style="fill:#9ce9ff;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;fill-opacity:1"
-     id="circle76"
-     cx="683.35242"
-     cy="470.66797"
-     r="12.705825" />
-  <circle
-     style="fill:#ff765b;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;fill-opacity:1"
-     id="circle77"
-     cx="857.91943"
-     cy="190.58739"
-     r="12.705825" />
-  <circle
-     style="fill:#ff765b;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;fill-opacity:1"
-     id="circle78"
-     cx="571.20978"
-     cy="363.49707"
-     r="12.705825" />
-  <circle
-     style="fill:#ffff66;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
-     id="circle79"
-     cx="680.26898"
-     cy="32.936378"
-     r="12.705825" />
-  <circle
-     style="fill:#b2ffcf;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke;fill-opacity:1"
-     id="circle80"
-     cx="1009.2845"
-     cy="38.669891"
-     r="12.705825" />
-  <circle
-     style="fill:#9be8ff;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
-     id="circle81"
-     cx="850.14362"
-     cy="332.95291"
-     r="12.705825" />
-  <circle
-     style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
-     id="circle82"
-     cx="664.23761"
-     cy="162.35417"
-     r="15.153244" />
-  <circle
-     style="fill:#ff765b;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
-     id="circle83"
-     cx="897.21454"
-     cy="410.57645"
-     r="12.705825" />
+     inkscape:label="Lights">
+    <circle
+       style="fill:#9ce9ff;fill-opacity:1;stroke:none;stroke-width:5.50001;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle75"
+       cx="1002"
+       cy="384"
+       r="16.000008" />
+    <circle
+       style="fill:#9ce9ff;fill-opacity:1;stroke:none;stroke-width:5.50001;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle76"
+       cx="682"
+       cy="463.99997"
+       r="16.000008" />
+    <ellipse
+       style="fill:#ff765b;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle77"
+       cx="858"
+       cy="192"
+       rx="16.000008"
+       ry="15.999999" />
+    <circle
+       style="fill:#ff765b;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle78"
+       cx="570"
+       cy="352.17776"
+       r="15.822234" />
+    <ellipse
+       style="fill:#ffff66;fill-opacity:1;stroke:none;stroke-width:5.50001;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle79"
+       cx="570"
+       cy="32"
+       rx="16.000015"
+       ry="15.999999" />
+    <circle
+       style="fill:#b2ffcf;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle80"
+       cx="1002.0001"
+       cy="32"
+       r="15.999999" />
+    <ellipse
+       style="fill:#9be8ff;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle81"
+       cx="834"
+       cy="328"
+       rx="8.0000038"
+       ry="8.0000076" />
+    <circle
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.5;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle82"
+       cx="666"
+       cy="160"
+       r="16" />
+    <ellipse
+       style="fill:#ff765b;fill-opacity:1;stroke:none;stroke-width:5.49999;stroke-linecap:round;paint-order:fill markers stroke"
+       id="circle83"
+       cx="890"
+       cy="400"
+       rx="16.000008"
+       ry="16.000015" />
+  </g>
 </svg>

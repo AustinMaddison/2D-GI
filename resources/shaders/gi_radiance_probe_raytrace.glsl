@@ -6,14 +6,9 @@ layout(binding = 1) uniform sampler2D colorMaskTex;
 layout(binding = 2) uniform sampler2D sdfTex;
 layout(binding = 3) uniform sampler2D normalsTex;
 
-layout(std430, binding = 4) readonly buffer giIrradianceProbePosLayout
-{
-    vec3 irradianceProbePos[];
-};
-layout(binding = 5) uniform image2D probeDepthImage;
-layout(binding = 6) uniform image2D probeIrradianceImage;
+layout(binding = 4) uniform image2D probeIrradiancDepthImage;
 
-layout(std430, binding = 7) buffer rayCountLayout
+layout(std430, binding = 5) buffer rayCountLayout
 {
     uint rayCountBuffer;
 };

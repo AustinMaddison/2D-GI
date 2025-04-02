@@ -129,6 +129,13 @@ void GenBounceRay(inout vec2 pos, inout vec2 dir)
     dir = RandomUnitHfCircleDir(normal, seed);
 }
 
+vec2 SubpixelJitter(vec2 uv, float sampleIndex)
+{
+    float jitterX = hash01(vec2(sampleIndex, uv.x)) - 0.5;
+    float jitterY = hash01(vec2(sampleIndex, uv.y)) - 0.5;
+    return uv + vec2(jitterX, jitterY) / vec2(uResolution);
+}
+
 void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
@@ -140,9 +147,10 @@ void main()
     // float cameraZoom = 1.;
 
     // uv = (uv - cameraPos) / cameraZoom;
-    
     vec2 pos = vec2(0.);
     vec2 dir = vec2(0.);
+
+    uv = SubpixelJitter(uv, uSamples);
     GenInitialRay(uv, pos, dir);
 
     float totalDist = 0.;
