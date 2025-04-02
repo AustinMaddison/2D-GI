@@ -6,23 +6,19 @@ layout(binding = 1) uniform sampler2D colorMaskTex;
 layout(binding = 2) uniform sampler2D sdfTex;
 layout(binding = 3) uniform sampler2D normalsTex;
 
-layout(std430, binding = 4) buffer rayCountLayout
+layout(std430, binding = 4) readonly buffer giIrradianceProbePosLayout
+{
+    vec3 irradianceProbePos[];
+};
+layout(binding = 5) uniform image2D probeDepthImage;
+layout(binding = 6) uniform image2D probeIrradianceImage;
+
+layout(std430, binding = 7) buffer rayCountLayout
 {
     uint rayCountBuffer;
 };
 
-layout(std430, binding = 5) writeonly buffer sceneGiALayout
-{
-    vec3 sceneGiBufferA[];
-};
-
-layout(std430, binding = 6) readonly buffer sceneGiBLayout
-{
-    vec3 sceneGiBufferB[];
-};
-
 uniform ivec2 uResolution;
-// uniform ivec2 uResolution;
 uniform uint uSamples;
 uniform float uTime;
 
@@ -133,13 +129,6 @@ void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
     vec2 uv = (vec2(st) + 0.5) / vec2(uResolution);
-    // uv = uv * 2.0 - 1.0;
-    // uv.x *= float(uResolution.x) / float(uResolution.y);
-
-    // vec2 cameraPos = vec2(0.0, 0.0);
-    // float cameraZoom = 1.;
-
-    // uv = (uv - cameraPos) / cameraZoom;
     
     vec2 pos = vec2(0.);
     vec2 dir = vec2(0.);

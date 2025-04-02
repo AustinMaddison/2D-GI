@@ -32,15 +32,13 @@ vec3 LessThan(vec3 f, float value)
         (f.z < value) ? 1.0f : 0.0f);
 }
 
-vec3 LinearToSRGB(vec3 rgb)
+vec3 LinearToRGB(vec3 linearRGB)
 {
-    rgb = clamp(rgb, 0.0f, 1.0f);
-    
-    return mix(
-        pow(rgb * 1.055f, vec3(1.f / 2.4f)) - 0.055f,
-        rgb * 12.92f,
-        LessThan(rgb, 0.0031308f)
-    );
+	bvec3 cutoff = lessThan(linearRGB, vec3(0.0031308));
+	vec3 higher = vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055);
+	vec3 lower = linearRGB * vec3(12.92);
+
+	return mix(higher, lower, cutoff);
 }
 
 vec3 ToneMap_Uncharted2(vec3 color, float exposure)
@@ -61,16 +59,17 @@ vec3 ToneMap_Uncharted2(vec3 color, float exposure)
     
     return mapped * whiteScale;
 }
-#define MAX_BOUNCE 5.
+#define MAX_BOUNCE 8
+
 void main() 
 {
     vec2 st = gl_GlobalInvocationID.xy;
     vec2 texelSize = 1. / vec2(uResolution);
     uint idx = getIdx(ivec2(st));
 
-    vec3 col = mix(sceneGiBuffer[idx] / MAX_BOUNCE, texture(colorMaskTex, st * texelSize).rgb * MAX_BOUNCE,  texture(colorMaskTex, st * texelSize).a);
-    col = ToneMap_Uncharted2(col, 1.);
-    col = LinearToSRGB(col);
+    vec3 col = mix(sceneGiBuffer[idx] / float(MAX_BOUNCE), texture(colorMaskTex, st * texelSize).rgb * float(MAX_BOUNCE),  texture(colorMaskTex, st * texelSize).a);
+    col = ToneMap_Uncharted2(col, 2.);
+    col = LinearToRGB(col);
 
     finalPassBuffer[idx] = col;
 }
