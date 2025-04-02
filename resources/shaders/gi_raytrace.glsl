@@ -22,7 +22,6 @@ layout(std430, binding = 6) readonly buffer sceneGiBLayout
 };
 
 uniform ivec2 uResolution;
-// uniform ivec2 uResolution;
 uniform uint uSamples;
 uniform float uTime;
 

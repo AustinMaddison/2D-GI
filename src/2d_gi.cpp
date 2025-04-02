@@ -44,9 +44,9 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
-#define DEFAULT_PROBE_WIDTH 16
-#define DEFAULT_PROBE_HEIGHT 16
-#define DEFAULT_PROBE_ANGLE_RESOLUTION 256
+#define DEFAULT_PROBE_WIDTH 32
+#define DEFAULT_PROBE_HEIGHT 32
+#define DEFAULT_PROBE_ANGLE_RESOLUTION 16
 
 #define DEFAULT_SAMPLES_MAX 4096
 
@@ -151,7 +151,7 @@ typedef struct
 
 void CreateAppState(AppState *state)
 {
-    state->rendererType = RAYTRACE;
+    state->rendererType = GiRendererType::IRRADIENCE_PROBES;
     state->mode = RUNNING;
     state->samplesCurr = 0;
     state->samplesMax = DEFAULT_SAMPLES_MAX;
@@ -217,15 +217,15 @@ void CreateRenderPipeline(AppState *state)
     UnloadFileText(shaderCode);
 
     // SECTION - Irradiance Probes
-    // shaderCode = LoadFileText("shaders/gi_radiance_probe_raytrace.glsl");
-    // compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
-    // state->giIrradianceProbeTraceProgram = rlLoadComputeShaderProgram(compiledShader);
-    // UnloadFileText(shaderCode);
+    shaderCode = LoadFileText("shaders/gi_radiance_probe_raytrace.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->giIrradianceProbeTraceProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
 
-    // shaderCode = LoadFileText("shaders/gi_radiance_probe_query.glsl");
-    // compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
-    // state->giIrradianceProbeQueryProgram = rlLoadComputeShaderProgram(compiledShader);
-    // UnloadFileText(shaderCode);
+    shaderCode = LoadFileText("shaders/gi_radiance_probe_query.glsl");
+    compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    state->giIrradianceProbeQueryProgram = rlLoadComputeShaderProgram(compiledShader);
+    UnloadFileText(shaderCode);
 
     // Post-processing
     shaderCode = LoadFileText("shaders/post_process.glsl");
@@ -325,19 +325,20 @@ void CreateRenderPipeline(AppState *state)
     }
 
     // SECTION - Irradiance Probe Texture
-    // uint probeTextureSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION);
-    // state->giProbeIrradianceDepthTex = rlLoadTexture(NULL, probeTextureSize, probeTextureSize, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
+    uint probeTextureSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION);
+    state->giProbeIrradianceDepthTex = rlLoadTexture(NULL, probeTextureSize, probeTextureSize, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
 
-    // textures = {
-    //     state->giProbeIrradianceDepthTex};
+    textures = {
+        state->giProbeIrradianceDepthTex
+    };
 
-    // for (auto tex : textures)
-    // {
-    //     rlTextureParameters(tex, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_REPEAT);
-    //     rlTextureParameters(tex, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_REPEAT);
-    //     rlTextureParameters(tex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_BILINEAR);
-    //     rlTextureParameters(tex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_BILINEAR);
-    // }
+    for (auto tex : textures)
+    {
+        rlTextureParameters(tex, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_REPEAT);
+        rlTextureParameters(tex, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_REPEAT);
+        rlTextureParameters(tex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_BILINEAR);
+        rlTextureParameters(tex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_BILINEAR);
+    }
 
     /* ------------------------------ Create SSBOs ------------------------------ */
 
@@ -372,7 +373,9 @@ void DeleteRenderPipeline(AppState *state)
     ids = {
         state->sceneGiSSBO_A,
         state->sceneGiSSBO_B,
-        state->finalPassSSBO};
+        state->finalPassSSBO,
+        state->rayCountSSBO
+    };
 
     for (auto id : ids)
     {
@@ -384,7 +387,9 @@ void DeleteRenderPipeline(AppState *state)
         state->jfaTex_A,
         state->jfaTex_B,
         state->sceneSdfTex,
-        state->sceneNormalsTex};
+        state->sceneNormalsTex,
+        state->giProbeIrradianceDepthTex
+    };
 
     for (auto id : ids)
     {
@@ -398,6 +403,7 @@ void RestartRenderer(AppState *state)
     state->samplesMax = state->samplesMax;
     state->timeInitial = GetTime();
     state->timeElapsed = 0;
+    state->isDirty = true;
 
     DeleteRenderPipeline(state);
     CreateRenderPipeline(state);
@@ -571,20 +577,31 @@ void RunGiRayTracingRenderPipeline(AppState *state)
 
 void RunGiIrradianceProbeRenderPipeline(AppState *state)
 {
+
     // Compute GI
-    rlEnableShader(state->giRayTraceProgram);
+    rlEnableShader(state->giIrradianceProbeTraceProgram);
+
     rlActiveTextureSlot(1);
     rlEnableTexture(state->sceneColorMaskTex);
     rlActiveTextureSlot(2);
     rlEnableTexture(state->sceneSdfTex);
     rlActiveTextureSlot(3);
     rlEnableTexture(state->sceneNormalsTex);
-    rlBindShaderBuffer(state->rayCountSSBO, 4);
-    rlBindShaderBuffer(state->sceneGiSSBO_A, 5);
-    rlBindShaderBuffer(state->sceneGiSSBO_B, 6);
-    rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
+
+    rlBindImageTexture(state->giProbeIrradianceDepthTex, 4, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
+    rlBindShaderBuffer(state->rayCountSSBO, 5);
+
+    uint dispatchSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION) / COMPUTE_SHADER_DISPATCH_X;
+    rlComputeShaderDispatch(dispatchSize, dispatchSize, 1);
+
+
     rlDisableShader();
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
     std::swap(state->sceneGiSSBO_A, state->sceneGiSSBO_B); // ping pong accumalation.
+
+
 
     // Compute Composite and Post-processing
     rlEnableShader(state->postProcessProgram);
@@ -594,18 +611,21 @@ void RunGiIrradianceProbeRenderPipeline(AppState *state)
     rlBindShaderBuffer(state->finalPassSSBO, 3);
     rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
+
 }
 
 void RunRenderPipeline(AppState *state)
 {
     UpdateUniforms(state);
 
+    // Scene Representation
     if (state->isDirty)
     {
-       UpdateSceneSDF(state);
-       state->isDirty = false;
+        UpdateSceneSDF(state);
+        state->isDirty = false;
     }
 
+    // Run GI
     switch (state->rendererType)
     {
     case GiRendererType::RAYTRACE:
@@ -643,6 +663,8 @@ void UpdateFrameBuffer(AppState *state)
     rlEnableTexture(state->sceneNormalsTex);
     rlActiveTextureSlot(5);
     rlEnableTexture(state->jfaTex_A);
+    rlActiveTextureSlot(6);
+    rlEnableTexture(state->giProbeIrradianceDepthTex);
 
     rlLoadDrawQuad();
     rlDrawCall();
@@ -671,7 +693,7 @@ void DrawInfoPanel(AppState *state)
     GuiLabel((Rectangle){anchor.x, anchor.y + 80 - 20, 300, 20}, TextFormat("Frame Time: %.3f ms", state->frameTime));
     GuiLabel((Rectangle){anchor.x, anchor.y + 100 - 20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
     GuiLabel((Rectangle){anchor.x, anchor.y + 120 - 20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
-    GuiLabel((Rectangle){anchor.x, anchor.y + 140 - 20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" :"Radiance Cascades"));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 140 - 20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : "Radiance Cascades"));
 }
 
 void DrawProgressBar(AppState *state)
@@ -682,10 +704,11 @@ void DrawProgressBar(AppState *state)
 
 void UpdateGui(AppState *state)
 {
-    DrawMouseInfo(state);
+    // DrawMouseInfo(state);
     DrawInfoPanel(state);
     DrawProgressBar(state);
 }
+
 
 void UpdateInput(AppState *state)
 {
@@ -715,6 +738,7 @@ void UpdateInput(AppState *state)
             state->mode = PAUSED;
     }
 
+
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         state->isPanning = true;
@@ -740,23 +764,39 @@ void UpdateInput(AppState *state)
         state->cameraPos += ((mousePosDelta / Vector2({1.0, resFract})) / (state->windowSize / 2.0)) / state->cameraZoom;
     }
 
-    if(IsKeyPressed(KEY_F1))
+    if (IsKeyPressed(KEY_F1))
     {
         state->rendererType = RAYTRACE;
+        state->mode = RESTART;
         TraceLog(LOG_INFO, "Switched To Raytraced GI");
     }
 
-    if(IsKeyPressed(KEY_F2))
+    if (IsKeyPressed(KEY_F2))
     {
         state->rendererType = IRRADIENCE_PROBES;
+        state->mode = RESTART;
         TraceLog(LOG_INFO, "Switched To Irradiance Field Probe GI");
+    }
+}
+
+void UpdateMouseCursorIcon(AppState *state)
+{
+
+    if(state->isPanning)
+    {
+        SetMouseCursor(MOUSE_CURSOR_RESIZE_ALL);
+    }
+    else if (GetMouseWheelMove() != 0)
+    {
+        // SetMouseCursor(MOUSE_CURSOR_RESIZE_NS);
+    }
+    else {
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
     }
 }
 
 void UpdateRenderState(AppState *state)
 {
-
-       
     switch (state->mode)
     {
     case Mode::RUNNING:
@@ -819,7 +859,6 @@ int main(void)
     InitWindow(state.windowSize.x, state.windowSize.y, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     SearchAndSetResourceDir(DEFAULT_RESOURCE_FOLDER);
     GuiLoadStyle(DEFAULT_GUI_STYLE);
-    HideCursor();
 
     CreateRenderPipeline(&state);
     /* -------------------------------- Main Loop ------------------------------- */
@@ -828,6 +867,7 @@ int main(void)
         UpdateInput(&state);
         UpdateRenderState(&state);
         UpdateViewport(&state);
+        UpdateMouseCursorIcon(&state);
     }
 
     DeleteRenderPipeline(&state);

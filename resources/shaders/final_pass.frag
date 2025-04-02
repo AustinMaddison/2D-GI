@@ -9,6 +9,7 @@ layout(binding = 2) uniform sampler2D colorMaskTex;
 layout(binding = 3) uniform sampler2D sdfTex;
 layout(binding = 4) uniform sampler2D normalsTex;
 layout(binding = 5) uniform sampler2D jfaTex;
+layout(binding = 6) uniform sampler2D probeIrradiancDepthImage;
 
 in vec2 fragTexCoord;
 out vec4 fragColor;
@@ -40,6 +41,9 @@ void main()
     // col = vec3(texture(jfaTex, fragTexCoord).rg, 0.);
     // col = vec3(sdf);
 
-    col = vec3(finalPassBuffer[getIdx(uv)]);
+    col = texture(probeIrradiancDepthImage, fragTexCoord).rgb;
+
+
+    // col = vec3(finalPassBuffer[getIdx(uv)]);
     fragColor = vec4(col, 1.0f);
 }

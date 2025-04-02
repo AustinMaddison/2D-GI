@@ -5,21 +5,18 @@ layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(binding = 1) uniform sampler2D colorMaskTex;
 layout(binding = 2) uniform sampler2D sdfTex;
 layout(binding = 3) uniform sampler2D normalsTex;
+layout(binding = 4) uniform sampler2D normalsTex;
 
 layout(std430, binding = 4) buffer rayCountLayout
 {
     uint rayCountBuffer;
 };
 
-layout(std430, binding = 5) writeonly buffer sceneGiALayout
+layout(std430, binding = 5) writeonly buffer sceneGiLayout
 {
-    vec3 sceneGiBufferA[];
+    vec3 sceneGiBuffer[];
 };
 
-layout(std430, binding = 6) readonly buffer sceneGiBLayout
-{
-    vec3 sceneGiBufferB[];
-};
 
 uniform ivec2 uResolution;
 // uniform ivec2 uResolution;
