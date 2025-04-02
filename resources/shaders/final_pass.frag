@@ -41,9 +41,9 @@ void main()
     // col = vec3(texture(jfaTex, fragTexCoord).rg, 0.);
     // col = vec3(sdf);
 
-    col = texture(probeIrradiancDepthImage, fragTexCoord).rgb;
+    // col = texture(probeIrradiancDepthImage, fragTexCoord).rgb;
 
 
-    // col = vec3(finalPassBuffer[getIdx(uv)]);
+    col = vec3(finalPassBuffer[getIdx(uv)]);
     fragColor = vec4(col, 1.0f);
 }

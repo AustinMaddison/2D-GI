@@ -222,7 +222,7 @@ void CreateRenderPipeline(AppState *state)
     state->giIrradianceProbeTraceProgram = rlLoadComputeShaderProgram(compiledShader);
     UnloadFileText(shaderCode);
 
-    shaderCode = LoadFileText("shaders/gi_radiance_probe_query.glsl");
+    shaderCode = LoadFileText("shaders/gi_irradiance_probe_query.glsl");
     compiledShader = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
     state->giIrradianceProbeQueryProgram = rlLoadComputeShaderProgram(compiledShader);
     UnloadFileText(shaderCode);
@@ -329,8 +329,7 @@ void CreateRenderPipeline(AppState *state)
     state->giProbeIrradianceDepthTex = rlLoadTexture(NULL, probeTextureSize, probeTextureSize, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
 
     textures = {
-        state->giProbeIrradianceDepthTex
-    };
+        state->giProbeIrradianceDepthTex};
 
     for (auto tex : textures)
     {
@@ -374,8 +373,7 @@ void DeleteRenderPipeline(AppState *state)
         state->sceneGiSSBO_A,
         state->sceneGiSSBO_B,
         state->finalPassSSBO,
-        state->rayCountSSBO
-    };
+        state->rayCountSSBO};
 
     for (auto id : ids)
     {
@@ -388,8 +386,7 @@ void DeleteRenderPipeline(AppState *state)
         state->jfaTex_B,
         state->sceneSdfTex,
         state->sceneNormalsTex,
-        state->giProbeIrradianceDepthTex
-    };
+        state->giProbeIrradianceDepthTex};
 
     for (auto id : ids)
     {
@@ -593,15 +590,19 @@ void RunGiIrradianceProbeRenderPipeline(AppState *state)
 
     uint dispatchSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION) / COMPUTE_SHADER_DISPATCH_X;
     rlComputeShaderDispatch(dispatchSize, dispatchSize, 1);
-
-
     rlDisableShader();
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    std::swap(state->sceneGiSSBO_A, state->sceneGiSSBO_B); // ping pong accumalation.
+    // Compute GI
+    rlEnableShader(state->giIrradianceProbeQueryProgram);
+    rlActiveTextureSlot(1);
+    rlEnableTexture(state->giProbeIrradianceDepthTex);
+    rlBindShaderBuffer(state->sceneGiSSBO_A, 2);
+    rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
+    rlDisableShader();
 
-
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     // Compute Composite and Post-processing
     rlEnableShader(state->postProcessProgram);
@@ -611,7 +612,6 @@ void RunGiIrradianceProbeRenderPipeline(AppState *state)
     rlBindShaderBuffer(state->finalPassSSBO, 3);
     rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
     rlDisableShader();
-
 }
 
 void RunRenderPipeline(AppState *state)
@@ -709,7 +709,6 @@ void UpdateGui(AppState *state)
     DrawProgressBar(state);
 }
 
-
 void UpdateInput(AppState *state)
 {
     std::swap(state->mousePosCurr, state->mousePosPrev);
@@ -737,7 +736,6 @@ void UpdateInput(AppState *state)
         else
             state->mode = PAUSED;
     }
-
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
@@ -782,7 +780,7 @@ void UpdateInput(AppState *state)
 void UpdateMouseCursorIcon(AppState *state)
 {
 
-    if(state->isPanning)
+    if (state->isPanning)
     {
         SetMouseCursor(MOUSE_CURSOR_RESIZE_ALL);
     }
@@ -790,7 +788,8 @@ void UpdateMouseCursorIcon(AppState *state)
     {
         // SetMouseCursor(MOUSE_CURSOR_RESIZE_NS);
     }
-    else {
+    else
+    {
         SetMouseCursor(MOUSE_CURSOR_DEFAULT);
     }
 }

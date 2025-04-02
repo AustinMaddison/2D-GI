@@ -2,24 +2,15 @@
 
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1) uniform sampler2D colorMaskTex;
-layout(binding = 2) uniform sampler2D sdfTex;
-layout(binding = 3) uniform sampler2D normalsTex;
-layout(binding = 4) uniform sampler2D normalsTex;
+layout(binding = 1) uniform sampler2D probeIrradiancDepthImage;
 
-layout(std430, binding = 4) buffer rayCountLayout
-{
-    uint rayCountBuffer;
-};
-
-layout(std430, binding = 5) writeonly buffer sceneGiLayout
+layout(std430, binding = 2) writeonly buffer sceneGiLayout
 {
     vec3 sceneGiBuffer[];
 };
 
 
 uniform ivec2 uResolution;
-// uniform ivec2 uResolution;
 uniform uint uSamples;
 uniform float uTime;
 
@@ -31,40 +22,10 @@ uniform float uTime;
 
 #define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
-// https://suricrasia.online/blog/shader-functions/
-#define FK(k) floatBitsToInt(cos(k))^floatBitsToInt(k)
-float hash(vec2 p) {
-    int x = FK(p.x);
-    int y = FK(p.y);
-    return float((x * x + y) * (y * y - x) + x) / 2.14e9;
-}
-
-float hash01(vec2 p) {
-    return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-}
-
-vec2 RandomUnitCircleDir(vec2 p)
-{
-    float theta = hash01(p) * 2 * PI;
-    return vec2(cos(theta), sin(theta));
-}
-
-vec2 RandomUnitHfCircleDir(vec2 normal, vec2 p)
-{
-    vec2 tangent = vec2(-normal.y, normal.x);
-    float theta = (hash01(p) * PI) - PI * .5;
-    return cos(theta) * normal + sin(theta) * tangent;
-}
-
-bool OutOfBounds(vec2 pos)
-{
-    vec2 bound = vec2(float(uResolution.x) / float(uResolution.y), 1.1);
-    if (pos.x < -bound.x) return true;
-    if (pos.y < -bound.y) return true;
-    if (pos.x >= bound.x) return true;
-    if (pos.y >= bound.y) return true;
-    return false;
-}
+const int DEFAULT_PROBE_WIDTH = 32;
+const int DEFAULT_PROBE_HEIGHT = 32;
+const int DEFAULT_PROBE_ANGLE_RESOLUTION = 16;
+const int DEFAULT_PROBE_LOCAL_SIZE = int(sqrt(float(DEFAULT_PROBE_ANGLE_RESOLUTION)));
 
 // https://learnwebgl.brown37.net/09_lights/lights_attenuation.html
 float Attenuation(float d, float c1, float c2)
@@ -77,89 +38,70 @@ float Attenuation_simple(float d)
     return clamp(1.0 / (d * d), 0.0, 1.0);
 }
 
-void Scene(in vec2 pos, out vec3 color, out float d)
-{
-    vec4 colorMask = texture(colorMaskTex, pos);
-    color = colorMask.rgb * colorMask.a;
-    d = texture(sdfTex, pos).r;
-}
-
-bool RayMarch(inout vec2 pos, in vec2 dir, out float td, out vec3 color)
-{    
-    td = 0.;
-    for (int i = 0; i < MAX_STEPS; i++)
-    {
-        float d = 0.;
-        Scene(pos, color, d);
-
-        pos += dir * d;
-                
-        if (OutOfBounds(pos))
-            break;
-
-        if (d < EPSILON)
-        {
-            return true;
-        }
-        td += d;
-    }
-    return false;
-}
-
-void GenInitialRay(in vec2 uv, out vec2 pos, out vec2 dir)
-{
-    vec2 o;
-    o = vec2(hash01(uv + uTime), hash01(uv - uTime)) * EPSILON;
-    o = vec2(0.f);
-    pos = uv + o;
-
-    vec2 seed = pos + hash(vec2(float(uSamples), uTime));
-    dir = RandomUnitCircleDir(seed);
-}
-
-void GenBounceRay(inout vec2 pos, inout vec2 dir)
-{
-    vec2 normal = texture(normalsTex, pos).xy;
-    pos += normal * 1E-4;
+vec2 getProbeUV(ivec2 probeIdx, vec2 dir, vec2 probeTextureSize) {
+    // Normalize the direction and compute the angle in [0, 2π]
+    vec2 normDir = normalize(dir);
+    float theta = atan(normDir.y, normDir.x);
+    if (theta < 0.0)
+        theta += 2.0 * PI;
     
-    vec2 seed = pos + hash(vec2(float(uSamples), uTime));
-    dir = RandomUnitHfCircleDir(normal, seed);
+    // Compute the fractional angular index
+    float angleStep = 2.0 * PI / float(DEFAULT_PROBE_ANGLE_RESOLUTION);
+    float angleIndex = theta / angleStep;
+    
+    // Determine the two closest bins
+    int lowerBin = int(floor(angleIndex)) % DEFAULT_PROBE_ANGLE_RESOLUTION;
+    int upperBin = (lowerBin + 1) % DEFAULT_PROBE_ANGLE_RESOLUTION;
+    float weight = fract(angleIndex);
+    
+    // Convert the bins into 2D local indices
+    ivec2 localIdx0 = ivec2(lowerBin % DEFAULT_PROBE_LOCAL_SIZE, lowerBin / DEFAULT_PROBE_LOCAL_SIZE);
+    ivec2 localIdx1 = ivec2(upperBin % DEFAULT_PROBE_LOCAL_SIZE, upperBin / DEFAULT_PROBE_LOCAL_SIZE);
+    
+    // Convert the indices to probe texture UV coordinates
+    vec2 uv0 = (vec2(probeIdx * DEFAULT_PROBE_LOCAL_SIZE + localIdx0) + 0.5) / probeTextureSize;
+    vec2 uv1 = (vec2(probeIdx * DEFAULT_PROBE_LOCAL_SIZE + localIdx1) + 0.5) / probeTextureSize;
+    
+    // Interpolate between the two UVs using the fractional weight
+    return mix(uv0, uv1, weight);
 }
 
 void main()
 {
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
-    vec2 uv = (vec2(st) + 0.5) / vec2(uResolution);
-
-    uv = (uv - cameraPos) / cameraZoom;
+    vec2 uv = vec2(st) / vec2(uResolution);
     
-    vec2 pos = vec2(0.);
-    vec2 dir = vec2(0.);
-    GenInitialRay(uv, pos, dir);
+    vec2 probePos = uv * vec2(DEFAULT_PROBE_WIDTH);
+    ivec2 i0 = ivec2(floor(probePos));
+    ivec2 i1 = clamp(i0 + ivec2(1, 0), ivec2(0), ivec2(DEFAULT_PROBE_WIDTH - 1));
+    ivec2 i2 = clamp(i0 + ivec2(0, 1), ivec2(0), ivec2(DEFAULT_PROBE_WIDTH - 1));
+    ivec2 i3 = clamp(i0 + ivec2(1, 1), ivec2(0), ivec2(DEFAULT_PROBE_WIDTH - 1));
 
-    float totalDist = 0.;
-    vec3 contribution = vec3(0.);
+    // Compute directions for each corner
+    vec2 d0 = normalize(probePos - vec2(i0));
+    vec2 d1 = normalize(probePos - vec2(i1));
+    vec2 d2 = normalize(probePos - vec2(i2));
+    vec2 d3 = normalize(probePos - vec2(i3));
 
-    for (int b = 0; b < MAX_BOUNCE; b++)
-    {
-        vec3 col = vec3(0);
-        bool hit = RayMarch(pos, dir, totalDist, col);
+    vec2 probeTextureSize = vec2(textureSize(probeIrradiancDepthImage, 0));
+    
+    // Get the UV coordinates using the new interpolation function
+    vec2 uv0 = getProbeUV(i0, d0, probeTextureSize);
+    vec2 uv1 = getProbeUV(i1, d1, probeTextureSize);
+    vec2 uv2 = getProbeUV(i2, d2, probeTextureSize);
+    vec2 uv3 = getProbeUV(i3, d3, probeTextureSize);
 
-        if (!hit) 
-            break;
+    vec3 c0 = texture(probeIrradiancDepthImage, uv0).rgb;
+    vec3 c1 = texture(probeIrradiancDepthImage, uv1).rgb;
+    vec3 c2 = texture(probeIrradiancDepthImage, uv2).rgb;
+    vec3 c3 = texture(probeIrradiancDepthImage, uv3).rgb;
 
-        contribution += col * Attenuation(totalDist, 1.0, 1.0);
-        GenBounceRay(pos, dir);
-    }
-
-    if (uSamples > 0)
-    {
-        contribution = (vec3(contribution) + (sceneGiBufferB[getIdx(st)] * float(uSamples - 1))) / float(uSamples);
-    }
-
-    sceneGiBufferA[getIdx(st)] = contribution;
-    // sceneGiBufferA[getIdx(st)] = vec3(GetSceneNormal(uv), 0.);
-    atomicAdd(rayCountBuffer, 1);
-    // sceneGiBufferA[getIdx(uv)] = vec3(sceneNormalsBuffer[getIdx(uv)], 0.);
-    // sceneGiBufferA[getIdx(uv)] = vec3(1.0);
+    vec2 f = fract(probePos);
+    
+    vec3 top = mix(c0, c1, f.x);
+    vec3 bottom = mix(c2, c3, f.x);
+    vec3 irradiance = mix(top, bottom, f.y);
+    
+    uint idx = getIdx(st);
+    sceneGiBuffer[idx] = irradiance;
 }
