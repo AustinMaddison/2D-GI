@@ -1,49 +1,3 @@
-%%
-%% This is file `sample-acmtog.tex',
-%% generated with the docstrip utility.
-%%
-%% The original source files were:
-%%
-%% samples.dtx  (with options: `all,journal,bibtex,acmtog')
-%% 
-%% IMPORTANT NOTICE:
-%% 
-%% For the copyright see the source file.
-%% 
-%% Any modified versions of this file must be renamed
-%% with new filenames distinct from sample-acmtog.tex.
-%% 
-%% For distribution of the original source see the terms
-%% for copying and modification in the file samples.dtx.
-%% 
-%% This generated file may be distributed as long as the
-%% original source files, as listed above, are part of the
-%% same distribution. (The sources need not necessarily be
-%% in the same archive or directory.)
-%%
-%%
-%% Commands for TeXCount
-%TC:macro \cite [option:text,text]
-%TC:macro \citep [option:text,text]
-%TC:macro \citet [option:text,text]
-%TC:envir table 0 1
-%TC:envir table* 0 1
-%TC:envir tabular [ignore] word
-%TC:envir displaymath 0 word
-%TC:envir math 0 word
-%TC:envir comment 0 0
-%%
-%% The first command in your LaTeX source must be the \documentclass
-%% command.
-%%
-%% For submission and review of your manuscript please change the
-%% command to \documentclass[manuscript, screen, review]{acmart}.
-%%
-%% When submitting camera ready or to TAPS, please change the command
-%% to \documentclass[sigconf]{acmart} or whichever template is required
-%% for your publication.
-%%
-%%
 \documentclass[acmtog, nonacm]{acmart}
 
 % \usepackage[scaled]{helvet} % Load Helvetica
@@ -51,24 +5,17 @@
 \usepackage{datetime}
 \usepackage{fancyhdr}
 
-%%
-%% \BibTeX command to typeset BibTeX logo in the docs
+
 \AtBeginDocument{%
   \providecommand\BibTeX{{%
     Bib\TeX}}}
 
-%% Rights management information.  This information is sent to you
-%% when you complete the rights form.  These commands have SAMPLE
-%% values in them; it is your responsibility as an author to replace
-%% the commands and values with those provided to you when you
-%% complete the rights form.
 \setcopyright{none}
 \copyrightyear{}
 \acmYear{}
 \acmDOI{}
 
-%%
-%% These commands are for a JOURNAL article.
+
 \acmJournal{TOG}
 \acmVolume{37}
 \acmNumber{4}
@@ -79,26 +26,14 @@
 
 \titleformat{\section}{\sffamily\Large}{\thesection}{1em}{\MakeUppercase}
 
-%%
-%% end of the preamble, start of the body of the document source.
 \begin{document}
 
-%%
-%% The "title" command has an optional parameter,
-%% allowing the author to define a "short title" to be used in page headers.
+
 \title{Exploring GPU-Based Monte-Carlo Methods for Global Illumination and Dynamic Irradiance Field Probes: Theory to Implementation}
 
-%%
-%% The "author" command and its associated commands are used to define
-%% the authors and their affiliations.
-%% Of note is the shared affiliation of the first two authors, and the
-%% "authornote" and "authornotemark" commands
-%% used to denote shared contribution to the research.
+
 \author{Austin J. Maddison}
-% \authornote{Both authors contributed equally to this research.}
-% \orcid{1234-5678-9012}
-% \author{G.K.M. Tobin}
-% \authornotemark[1]
+
 \email{austin.mad@student.mahidol.edu}
 \affiliation{%
   \institution{Mahidol University International College}
@@ -107,58 +42,20 @@
     \country{Thailand}
   }
 
-%%
-%% By default, the full list of authors will be used in the page
-%% headers. Often, this list is too long, and will overlap
-%% other information printed in the page headers. This command allows
-%% the author to define a more concise list
-%% of authors' names for this purpose.
 \renewcommand{\shortauthors}{Austin J. Maddison}
 
-%%
-%% The abstract is a short summary of the work to be presented in the
-%% article.
-\begin{abstract}
-  Global illumination (GI) is fundamental in achieving photorealistic rendering by simulating the indirect interactions of light in a scene. Traditional Monte Carlo ray tracing methods, while highly accurate, are computationally expensive and impractical for real-time applications. This report explores the implementation of Monte Carlo-based global illumination techniques and their adaptation to real-time rendering through the use of irradiance field probes. I discuss the theoretical foundations of Monte Carlo ray tracing, the challenges of real-time global illumination, and bringing global ilumination to real time using irradiance field probes in balancing performance and visual quality.
+%   \begin{teaserfigure}
+%     \includegraphics[width=\textwidth]{sampleteaser}
+%     \caption{figure caption}
+%     \Description{figure description}
+%   \end{teaserfigure}
+
+\begin{abstract} 
+Global illumination (GI) is essential for achieving photorealistic rendering by simulating the indirect interactions of light within a scene. While Monte Carlo ray tracing offers high-fidelity results, its computational cost makes it impractical for real-time applications. This report explores how Monte Carlo-based GI can be adapted for real-time rendering through the use of irradiance field probes. I begin by covering the fundamentals of Monte Carlo ray tracing and the challenges of real-time GI, then introduce irradiance probes as a practical solution to bridge the gap between quality and performance. The implementation is done in a 2D discretized space, using a Signed Distance Field (SDF) representation. While most GI research focuses on 3D scenes, this work explores how similar concepts can be applied in 2D offering potential value for 2D engines aiming for more realistic lighting. 
 \end{abstract}
 
-%%
-%% The code below is generated by the tool at http://dl.acm.org/ccs.cfm.
-%% Please copy and paste the code instead of the example below.
-% %%
-% \begin{CCSXML}
-% <ccs2012>
-%  <concept>
-%   <concept_id>00000000.0000000.0000000</concept_id>
-%   <concept_desc>Do Not Use This Code, Generate the Correct Terms for Your Paper</concept_desc>
-%   <concept_significance>500</concept_significance>
-%  </concept>
-%  <concept>
-%   <concept_id>00000000.00000000.00000000</concept_id>
-%   <concept_desc>Do Not Use This Code, Generate the Correct Terms for Your Paper</concept_desc>
-%   <concept_significance>300</concept_significance>
-%  </concept>
-%  <concept>
-%   <concept_id>00000000.00000000.00000000</concept_id>
-%   <concept_desc>Do Not Use This Code, Generate the Correct Terms for Your Paper</concept_desc>
-%   <concept_significance>100</concept_significance>
-%  </concept>
-%  <concept>
-%   <concept_id>00000000.00000000.00000000</concept_id>
-%   <concept_desc>Do Not Use This Code, Generate the Correct Terms for Your Paper</concept_desc>
-%   <concept_significance>100</concept_significance>
-%  </concept>
-% </ccs2012>
-% \end{CCSXML}
-
 \ccsdesc[500]{Computing methodologies~Rendering}
-% \ccsdesc[300]{Do Not Use This Code~Generate the Correct Terms for Your Paper}
-% \ccsdesc{Do Not Use This Code~Generate the Correct Terms for Your Paper}
-% \ccsdesc[100]{Computing methodologies~Rendering}
 
-%%
-%% Keywords. The author(s) should pick words that accurately describe
-%% the work being presented. Separate the keywords with commas.
 \keywords{Global illumination, raytracing, offline rendering, real-time rendering}
 
 % \received{20 February 2007}
@@ -166,31 +63,67 @@
 % \received[accepted]{5 June 2009}
 \received[Last modified]{\today}
 
-
-%%
-%% This command processes the author and affiliation and title
-%% information and builds the first part of the formatted document.
 \maketitle
 
 \section{Introduction}
-Global illumination (GI) plays a critical role in achieving photorealistic rendering by simulating the complex interactions of light within a scene. Unlike direct illumination, which models light traveling directly from a light source to an object, global illumination accounts for the way light bounces off surfaces and illuminates other objects in the environment. This results in more natural, grounded, and visually cohesive scenes, where light interactions between surfaces are fully realized. 
 
-In this work, we explore both offline and real-time techniques for computing global illumination, with a focus on implementing Monte Carlo ray tracing methods to simulate the necessary light transport. While many algorithms have been developed over the years to compute GI, the core principle behind them remains Monte Carlo ray tracing, a statistical approach to solving complex lighting equations. 
+Global illumination (GI) is essential for realistic lighting, as it simulates both direct and indirect light interactions within a scene. Unlike direct illumination, GI captures how light reflects, refracts, and diffuses across surfaces, resulting in more cohesive visuals.
 
-This report delves into the theoretical aspects of Monte Carlo ray tracing for global illumination, followed by an exploration of practical implementations and their translation into real-time rendering. Given the computational challenges associated with real-time GI, this work focuses on a following up with techniques to have dynamic irradiance field probes. These probes are advantageous because they decouple the lighting information from the scene's geometry, allowing for scalable, flexible, and efficient rendering. 
+This report explores GI algorithms with an emphasis on GPU-based implementations using compute shaders. It begins with Monte Carlo ray tracing, a probabilistic technique foundational to many physically based rendering methods. The goal is to adapt this approach to 2D, using a discretized Signed Distance Field (SDF) instead of traditional 3D geometry.
 
-The report is structured as follows:
+To support real-time applications, the report then investigates irradiance field probes—an efficient approximation technique that decouples light sampling from scene geometry. This makes it well-suited for dynamic or large environments where full ray tracing is computationally expensive.
 
+I compare the performance and visual quality of irradiance probes with Monte Carlo ray tracing, and conclude by briefly discussing extensions other works that improve the probe system’s dynamism and memory efficiency, which is something I can maybe explore in the future.
+
+\subsection{Report Structure}
+
+\textbf{Introduction}: Overview of Global Illumination and its significance in realistic rendering (this section).
+
+\textbf{Related Work}:
 \begin{itemize}
-    \item \textbf{Overview of Global Illumination and Related Works}: Introducing the concept and its significance in realistic rendering.
-    \item \textbf{Render Pipeline and SDF Scene Representation}: Describing my custom 2D render pipeline and how Signed Distance Field (SDF) representation enhances scene rendering.
-    \item \textbf{Monte Carlo Ray Tracing for GI}: Detailed exploration of the Monte Carlo method and its application to global illumination.
-    \item \textbf{Reaching Real-Time Performance}: Examining strategies such as coarse tracing, texture and vertex baking, and the use of irradiance field probes to bridge the gap between offline and real-time GI.
-    \item \textbf{Dynamic Irradiance Field Probes}: Starting with irradiance probes and extending it with update logic to update GI as scene changes.
-    \item \textbf{Performance Comparison}: A thorough evaluation comparing the performance and visual quality of dynamic irradiance field probes versus traditional Monte Carlo ray tracing.
+  \item \textbf{Monte Carlo Ray Tracing}: Explanation of the ray tracing method and its role in simulating light transport.
+  \item \textbf{Challenges of Real-Time GI}: A discussion on the computational challenges that make GI difficult to perform in real-time.
+  \item \textbf{Real-Time GI with Irradiance Probes}: Introduction to irradiance field probes and how they enable real-time indirect lighting.
+  \item \textbf{Supercharging Irradiance Fields}: A brief look at extensions to make probes dynamic and space-efficient.
 \end{itemize}
 
-By the end of this report, the aim is to present a comprehensive exploration of how advanced Monte Carlo techniques can be adapted to real-time environments, with a specific focus on irradiance field probes as a promising solution for scalable and flexible global illumination in real-time rendering.
+\textbf{Approach}:
+\begin{itemize}
+  \item \textbf{SDF-Based Render Pipeline}: Description of the custom 2D rendering pipeline and use of Signed Distance Fields to represent geometry.
+  \item \textbf{Monte Carlo GI in 2D}: Adaptation and implementation of Monte Carlo ray tracing in a 2D SDF environment.
+  \item \textbf{Real-Time Irradiance Probes}: Details on implementing irradiance probes on the GPU for fast and scalable GI.
+\end{itemize}
+
+\textbf{Performance Evaluation}:
+\begin{itemize}
+  \item \textbf{Benchmarks}: Performance measurements of the irradiance probe system vs. traditional Monte Carlo ray tracing.
+  \item \textbf{Image Comparisons}: Visual comparisons to evaluate the trade-offs between quality and speed.
+\end{itemize}
+
+\textbf{Conclusion}:
+\begin{itemize}
+  \item Summary of findings, limitations, and suggestions for future work.
+\end{itemize}
+
+Through this project, I aim to investigate how core GI algorithms work and written for the GPU and how they can be translated into real-time rendering a simplified 2D context.
+
+\section{Related Work}
+\subsection{Monte Carlo Ray Tracing}
+\subsection{Challenges of Real-Time GI}
+\subsection{Real-Time GI with Irradiance Probes}
+\subsection{Supercharging Irradiance Fields}
+
+\section{Approach}
+\subsection{SDF-Based Render Pipeline}
+\subsection{Monte Carlo GI in 2D}
+\subsection{Real-Time Irradiance Probes}
+
+\section{Performance Evaluation}
+\subsection{Benchmarks}
+\subsection{Image Comparisons}
+
+\section{Conclusion}
+
 
 % \section{Template Overview}
 % As noted in the introduction, the ``\verb|acmart|'' document class can

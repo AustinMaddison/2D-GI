@@ -1,17 +1,18 @@
 # Fdb version 4
-["bibtex sample-acmtog"] 1743524006.08498 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743867192.89105 0
+["bibtex sample-acmtog"] 1743936165.54272 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743936337.53736 0
   "./ACM-Reference-Format.bst" 1743398046 90749 48abc1cbed6fafc6fc31528e3aa606ca ""
   "./sample-base.bib" 1743398046 53502 964ea99580e0dcb033825342c38b7d6d ""
-  "sample-acmtog.aux" 1743867192.34098 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
+  "sample-acmtog.aux" 1743936337.12577 2577 dfd894e338bb30ffb4818a4f398d6f1c "pdflatex"
   (generated)
   "sample-acmtog.bbl"
   "sample-acmtog.blg"
   (rewritten before read)
-["pdflatex"] 1743867190.96159 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743867192.89132 0
+["pdflatex"] 1743936335.91486 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743936337.53758 0
   "/etc/texmf/web2c/texmf.cnf" 1740481272.74214 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743867190.62498 31284 ed9c173795fb58635d62f0a04d9c7edc ""
+  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743936335.6748 27889 81a2280ae0572a2dcaad2e9b874a369c ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_25tcsq.enc" 1490131464 2921 8ca0eb0831f9bc5da080d3697cfe67bf ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa5.enc" 1490131464 2933 9ad527ce78d7c5fa0a642dead095f172 ""
+  "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_afusau.enc" 1490131464 3358 dfe33526c2f2184d6b22489aab24ba03 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_naooyc.enc" 1490131464 3357 5261ce65ba03aef9faf6135657b9abb6 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_nh77jq.enc" 1490131464 2933 8d808fcabf70c6c809bb14c283ece4da ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -25,6 +26,8 @@
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmr9.tfm" 1136768653 1292 6b21b9c2c7bebb38aa2273f7ca0fb3af ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinBiolinumT-tlf-t1--base.tfm" 1490131464 1744 9486ddc64e90094bbb83f53a83b0e415 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinBiolinumT-tlf-t1.tfm" 1490131464 19548 768852037f39958c435d71846b8877ea ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinBiolinumT-tlf-ts1--base.tfm" 1490131464 1476 4a9ded7a415d13ca81e0bba79de46b49 ""
+  "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinBiolinumT-tlf-ts1.tfm" 1490131464 1508 c32475d902c7458e0ca128e509a1594e ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinLibertineT-tlf-ot1.tfm" 1490131464 5612 e018d44ec5e7a3b3574b3a9598e8e279 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinLibertineT-tlf-t1--base.tfm" 1490131464 1740 2943dd2ba1dcd3849599663c1d2693ef ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/libertine/LinLibertineT-tlf-t1.tfm" 1490131464 19504 bdf9fb416f5a91bf56b1ccda887f5b91 ""
@@ -50,6 +53,7 @@
   "/usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineTB.pfb" 1354061736 538965 19c5c8b7f952ac97afb8565e9c21a82d ""
   "/usr/share/texlive/texmf-dist/fonts/type1/public/newtx/txsys.pfb" 1699567298 45943 7899c7ea4fdd83f3625178689816dcee ""
   "/usr/share/texlive/texmf-dist/fonts/vf/public/libertine/LinBiolinumT-tlf-t1.vf" 1490131464 1728 e76e04a950024a95b620698b679c9810 ""
+  "/usr/share/texlive/texmf-dist/fonts/vf/public/libertine/LinBiolinumT-tlf-ts1.vf" 1490131464 588 dd1507651160596948db71909e4bbaec ""
   "/usr/share/texlive/texmf-dist/fonts/vf/public/libertine/LinLibertineT-tlf-t1.vf" 1354061736 1728 b078a050f24d7649619baa987d7216d8 ""
   "/usr/share/texlive/texmf-dist/fonts/vf/public/libertine/LinLibertineT-tlf-ts1.vf" 1490131464 640 f2633b196ddbd644937d19e300a5024e ""
   "/usr/share/texlive/texmf-dist/fonts/vf/public/libertine/LinLibertineTB-tlf-t1.vf" 1490131464 1768 5d66dfd9709f1f38b8fb3cb38db46402 ""
@@ -143,6 +147,7 @@
   "/usr/share/texlive/texmf-dist/tex/latex/libertine/OT1LinuxLibertineT-TLF.fd" 1490131464 3019 024cbcf380053dddffd4ac0b44aac808 ""
   "/usr/share/texlive/texmf-dist/tex/latex/libertine/T1LinuxBiolinumT-TLF.fd" 1490131464 2264 2324ece7d4d2a7fa3c2138d120196405 ""
   "/usr/share/texlive/texmf-dist/tex/latex/libertine/T1LinuxLibertineT-TLF.fd" 1490131464 2980 15412b63bb0119ade194e089fff355d4 ""
+  "/usr/share/texlive/texmf-dist/tex/latex/libertine/TS1LinuxBiolinumT-TLF.fd" 1490131464 1329 b3927c6411238357fc3ed8fd9bdc7eaa ""
   "/usr/share/texlive/texmf-dist/tex/latex/libertine/TS1LinuxLibertineT-TLF.fd" 1490131464 1689 42435c12d9d3dc0c446eb02409690ab9 ""
   "/usr/share/texlive/texmf-dist/tex/latex/libertine/libertine.sty" 1713989903 19358 ca0f9b5016a74813fc4f6c85c48d3d5b ""
   "/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype-pdftex.def" 1711748042 48246 4fd40a0fb055e75ab59718b607ff1a02 ""
@@ -180,11 +185,11 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1740481303 5483312 31090f1c3437d4bbfc097aaea5bf9b97 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1740481379 8243982 0c4cbad0d94099e685e4533e98f2354e ""
   "acmart.cls" 1743398046 119755 fb6b15d8a2b05651c52a19a84ffb7b05 ""
-  "comment.cut" 1743867192.12498 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
-  "sample-acmtog.aux" 1743867192.34098 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
-  "sample-acmtog.bbl" 1743559401.65064 1712 4d28b6ea748d03d80535fe94a7371ddb "bibtex sample-acmtog"
-  "sample-acmtog.out" 1743867192.34198 413 5865056750e12589ab31951482a9b72d "pdflatex"
-  "sample-acmtog.tex" 1743867190.62498 31284 ed9c173795fb58635d62f0a04d9c7edc ""
+  "comment.cut" 1743936336.93478 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
+  "sample-acmtog.aux" 1743936337.12577 2577 dfd894e338bb30ffb4818a4f398d6f1c "pdflatex"
+  "sample-acmtog.bbl" 1743936165.69193 1712 4d28b6ea748d03d80535fe94a7371ddb "bibtex sample-acmtog"
+  "sample-acmtog.out" 1743936337.12677 2928 b44ef87c5876fb83c5d24bdec8231d4a "pdflatex"
+  "sample-acmtog.tex" 1743936335.6748 27889 81a2280ae0572a2dcaad2e9b874a369c ""
   (generated)
   "comment.cut"
   "sample-acmtog.aux"
