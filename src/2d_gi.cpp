@@ -307,8 +307,8 @@ void CreateRenderPipeline(AppState *state)
     // Image sceneImg = LoadImage("textures/test_flood_fill_box.png");
     // Image sceneImg = LoadImage("textures/test_flood_fill.png");
     // Image sceneImg = LoadImage("textures/cornell.png");
-    // Image sceneImg = LoadImage("textures/bitmap.png");
-    Image sceneImg = LoadImage("textures/test.png");
+    Image sceneImg = LoadImage("textures/bitmap.png");
+    // Image sceneImg = LoadImage("textures/test.png");
     // Image sceneImg = LoadImage("textures/wall.png");
     // Image sceneImg = LoadImage("textures/door.png");
     ImageFlipVertical(&sceneImg);

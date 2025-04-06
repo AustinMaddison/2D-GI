@@ -139,6 +139,7 @@ Irradiance fields fall into the category of caching techniques but offer a spars
 To address the challenges of real-time global illumination, irradiance probes provide an efficient solution for approximating indirect lighting. Irradiance probes decouple light sampling from scene geometry, enabling the calculation of indirect lighting in a more computationally feasible manner. By storing irradiance values in a grid or field throughout the scene, they allow for quick retrieval of lighting information, significantly reducing the cost of real-time global illumination. This method works particularly well in dynamic or large-scale environments where full ray tracing would be too costly. The trade-off is a reduction in accuracy, but in many cases, irradiance probes offer a good balance between performance and visual fidelity.
 
 \subsection{Supercharging Irradiance Fields}
+\label{sec:extend}
 While irradiance probes offer a practical solution for real-time GI, several advanced techniques can enhance their efficiency and adaptability. Spherical Harmonics (SH) are often used to compactly represent irradiance data, enabling efficient storage and retrieval \cite{sloan2008stupid, schneider2017efficient}. Visibility information can be incorporated into probes to better account for occlusions, improving the accuracy of indirect lighting \cite{silvennoinen2017real}. Dynamic updates with state tracking allow probes to adapt to changes in the scene, ensuring responsiveness in dynamic environments \cite{sedlacek2019real, datta2023adaptive}. Irregular and variably sparse placement of probes, guided by scene complexity or lighting conditions, can further optimize memory usage and computational overhead \cite{vardis2015efficient}. These enhancements collectively improve the quality and performance of irradiance fields in real-time applications.
 
 \section{Approach}
@@ -194,7 +195,7 @@ We use the 2D buffers shown above to then trace scene using 2D raymarching. This
 To implement irradiance probes using a sparse grid, we first define the grid layout and perform ray tracing for each probe position. The results are stored in a map layout for efficient querying during rendering.
 
 \subsubsection{Probe Position Initialization}
-We define a grid of probe positions across the scene. Each probe stores irradiance data computed using ray tracing algorithm above into a texture. Then after the radiance has been computed it can be queried by any position in the scene to get the interpolated GI irradiance.
+We define a regular grid of probe positions across the scene, with a parameter \( n \) where \( n \times n \) is the total number of probes. Each probe stores irradiance data computed using the ray tracing algorithm above into a texture. After the radiance has been computed, it can be queried by any position in the scene to get the interpolated GI irradiance.
 
 \subsubsection{Algorithm Compute}
 \begin{enumerate}
@@ -225,15 +226,74 @@ We define a grid of probe positions across the scene. Each probe stores irradian
   \caption{Left: Irradiance probe positions (marked as the square dots). Right: Irraidance probe irradiance data texture}
 \end{figure}
 
-
 \section{Performance Evaluation}
 \subsection{Benchmarks}
-\subsection{Image Comparisons}
+The performance of both the Monte Carlo ray tracer and the irradiance probes for global illumination was evaluated against different scenes. The metric used was samples per second (sps), where a higher sps indicates better performance. The output resolution was fixed at 512x512, and the scenes were enclosed to ensure that rays reached the maximum bounce limit, which was set to 8.
 
+To analyze the impact of varying the grid size \( n \), the irradiance probe system was tested with grid sizes ranging from \( n=4 \) to \( n=512 \). 
+
+\vspace{-10pt}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\linewidth]{../notebook/plot/shapes_scene_average_irradiance_probe_ray_tracing_sampling_speed.pdf}
+\end{figure}
+
+\vspace{-28pt}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\linewidth]{../notebook/plot/wall_scene_average_irradiance_probe_ray_tracing_sampling_speed.pdf}
+\end{figure}
+
+\vspace{-28pt}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\linewidth]{../notebook/plot/door_scene_average_irradiance_probe_ray_tracing_sampling_speed.pdf}
+\end{figure}
+
+As anticipated, irradiance probes exhibited significantly better performance by reducing the number of positions requiring irradiance calculations, with runtime scaling according to the grid size \(n^2\). Performance remained consistent across different scenes, which is expected since the enclosed space ensures all rays reach the maximum bounce depth, as they cannot escape. In an open scene, performance differences might emerge as some rays would terminate earlier, reducing the number of required bounces. 
+
+\subsection{Image Comparisons}
+The images illustrate how GI quality decreases with lower grid resolutions \( n \). Image D (\( n=32 \)) is the minimum acceptable resolution, as lower values show noticeable artifacts. Beyond image F \( n=64 \), quality improvements are minimal. Irradiance probes at \( n=64 \) were on average 7.4 times faster than Monte Carlo ray tracing.
+
+\vspace{-5pt}
+
+\begin{figure}[ht]
+  \centering
+    \includegraphics[width=0.9\linewidth]{shapes.pdf}
+    \vspace{-10pt}
+    \caption{Shapes Scene: A to I represent irradiance probes with increasing grid resolution (A: n=4, B: n=8, C: n=16, D: n=32, E: n=64, F: n=128, G: n=256, H: n=512), and I represents Monte Carlo Ray Tracing.}
+\end{figure}
+
+\vspace{-15pt}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\linewidth]{wall.pdf}
+  \vspace{-10pt}
+  \caption{Wall Scene: A to I represent irradiance probes with increasing grid resolution (A: n=4, B: n=8, C: n=16, D: n=32, E: n=64, F: n=128, G: n=256, H: n=512), and I represents Monte Carlo Ray Tracing.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\linewidth]{door.pdf}
+  \caption{Door Scene: A to I represent irradiance probes with increasing grid resolution (A: n=4, B: n=8, C: n=16, D: n=32, E: n=64, F: n=128, G: n=256, H: n=512), and I represents Monte Carlo Ray Tracing.}
+\end{figure}
+
+\break
 \section{Conclusion}
+
+Introducing irradiance fields to query global illumination proves to be faster than Monte Carlo ray-tracing every pixel, but at the cost of accuracy.  This trade-off is evident in the benchmarks and image comparisons, where irradiance fields significantly reduce computation time while maintaining acceptable visual quality at higher grid resolutions. However, the reduced accuracy can lead to artifacts such as light leaking or loss of detail in complex lighting scenarios. 
+
+Future work for this project could be exploring the techniques that I mention in Section~\ref{sec:extend}, where people have extended irradiance probes to be more efficient, flexible and dynamic.
+
+In conclusion, this project provided an opportunity to explore both the theoretical and practical aspects of light transport and its optimization for real-time rendering. Additionally, it facilitated learning how to create advanced GPU programs using compute shaders, random number generation, and other techniques essential for crafting bespoke rendering solutions.
 
 \section{Source Code}
 \label{sec:sourcecode}
+The full source code and implementation details (although messy) can be found here: \url{https://github.com/AustinMaddison/2D-GI}.
 
 
 % \section{Template Overview}
