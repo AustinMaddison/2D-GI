@@ -130,9 +130,9 @@ void GenBounceRay(inout vec2 pos, inout vec2 dir)
 
 vec2 SubpixelJitter(vec2 uv, float sampleIndex)
 {
-    float jitterX = hash01(vec2(sampleIndex, uv.x)) - 0.5;
-    float jitterY = hash01(vec2(sampleIndex, uv.y)) - 0.5;
-    return uv + vec2(jitterX, jitterY) / vec2(uResolution);
+    float jitterX = hash01(vec2(sampleIndex, uv.x)) * 2.0 - 1.0;
+    float jitterY = hash01(vec2(sampleIndex, uv.y)) * 2.0 - 1.0;
+    return uv + vec2(jitterX, jitterY)* 0.5 / vec2(uResolution);
 }
 
 void main()

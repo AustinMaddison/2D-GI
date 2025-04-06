@@ -22,8 +22,8 @@ uniform float uTime;
 
 #define getIdx(uv) (uv.x)+uResolution.x*(uv.y)
 
-const int DEFAULT_PROBE_WIDTH = 32;
-const int DEFAULT_PROBE_HEIGHT = 32;
+const int DEFAULT_PROBE_WIDTH = 64;
+const int DEFAULT_PROBE_HEIGHT = 64;
 const int DEFAULT_PROBE_ANGLE_RESOLUTION = 16;
 const int DEFAULT_PROBE_LOCAL_SIZE = int(sqrt(float(DEFAULT_PROBE_ANGLE_RESOLUTION)));
 
@@ -77,15 +77,13 @@ void main()
     ivec2 i2 = clamp(i0 + ivec2(0, 1), ivec2(0), ivec2(DEFAULT_PROBE_WIDTH - 1));
     ivec2 i3 = clamp(i0 + ivec2(1, 1), ivec2(0), ivec2(DEFAULT_PROBE_WIDTH - 1));
 
-    // Compute directions for each corner
     vec2 d0 = normalize(probePos - vec2(i0));
     vec2 d1 = normalize(probePos - vec2(i1));
     vec2 d2 = normalize(probePos - vec2(i2));
     vec2 d3 = normalize(probePos - vec2(i3));
 
     vec2 probeTextureSize = vec2(textureSize(probeIrradiancDepthImage, 0));
-    
-    // Get the UV coordinates using the new interpolation function
+
     vec2 uv0 = getProbeUV(i0, d0, probeTextureSize);
     vec2 uv1 = getProbeUV(i1, d1, probeTextureSize);
     vec2 uv2 = getProbeUV(i2, d2, probeTextureSize);
@@ -103,5 +101,7 @@ void main()
     vec3 irradiance = mix(top, bottom, f.y);
     
     uint idx = getIdx(st);
-    sceneGiBuffer[idx] = irradiance;
+
+    sceneGiBuffer[idx] = texture(probeIrradiancDepthImage, uv).rgb;
+    // sceneGiBuffer[idx] = vec3(uv, 0.0);
 }

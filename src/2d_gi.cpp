@@ -44,9 +44,16 @@ static const char *toolDescription = TOOL_DESCRIPTION;
 #define COMPUTE_SHADER_DISPATCH_X 16
 #define COMPUTE_SHADER_DISPATCH_Y 16
 
-#define DEFAULT_PROBE_WIDTH 32
-#define DEFAULT_PROBE_HEIGHT 32
-#define DEFAULT_PROBE_ANGLE_RESOLUTION 16
+const int PROBE_SIZES[8] = {
+    4,
+    8,
+    16,
+    32,
+    64, 
+    128,
+    256,
+    512,
+};
 
 #define DEFAULT_SAMPLES_MAX 4096
 
@@ -105,6 +112,7 @@ typedef struct
     float fps;       // frames per second
     float rps;       // rays per second
     uint rayCount;
+    uint probSizeIdx;
 
     float distClosestSurface;
     Vector2 normals;
@@ -175,6 +183,7 @@ void CreateAppState(AppState *state)
     state->fps = 0;
     state->distClosestSurface = 0;
     state->normals = Vector2({0, 0});
+    state->probSizeIdx = 0;
 }
 
 void CreateRenderPipeline(AppState *state)
@@ -297,7 +306,11 @@ void CreateRenderPipeline(AppState *state)
     // Load images into OpenGl Textures
     // Image sceneImg = LoadImage("textures/test_flood_fill_box.png");
     // Image sceneImg = LoadImage("textures/test_flood_fill.png");
-    Image sceneImg = LoadImage("textures/bitmap.png");
+    // Image sceneImg = LoadImage("textures/cornell.png");
+    // Image sceneImg = LoadImage("textures/bitmap.png");
+    Image sceneImg = LoadImage("textures/test.png");
+    // Image sceneImg = LoadImage("textures/wall.png");
+    // Image sceneImg = LoadImage("textures/door.png");
     ImageFlipVertical(&sceneImg);
     ImageFormat(&sceneImg, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32);
 
@@ -325,19 +338,16 @@ void CreateRenderPipeline(AppState *state)
     }
 
     // SECTION - Irradiance Probe Texture
-    uint probeTextureSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION);
+    uint probeTextureSize = sqrt((PROBE_SIZES[state->probSizeIdx] * (PROBE_SIZES[state->probSizeIdx])));
     state->giProbeIrradianceDepthTex = rlLoadTexture(NULL, probeTextureSize, probeTextureSize, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
 
-    textures = {
-        state->giProbeIrradianceDepthTex};
-
-    for (auto tex : textures)
-    {
-        rlTextureParameters(tex, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_REPEAT);
-        rlTextureParameters(tex, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_REPEAT);
-        rlTextureParameters(tex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_BILINEAR);
-        rlTextureParameters(tex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_BILINEAR);
-    }
+    // Generate mipmaps for trilinear sampling
+    int mips = 0;
+    rlGenTextureMipmaps(state->giProbeIrradianceDepthTex, probeTextureSize, probeTextureSize, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, &mips);
+    rlTextureParameters(state->giProbeIrradianceDepthTex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_LINEAR);
+    rlTextureParameters(state->giProbeIrradianceDepthTex, RL_TEXTURE_MAG_FILTER, RL_TEXTURE_FILTER_LINEAR);
+    rlTextureParameters(state->giProbeIrradianceDepthTex, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_CLAMP);
+    rlTextureParameters(state->giProbeIrradianceDepthTex, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_CLAMP);
 
     /* ------------------------------ Create SSBOs ------------------------------ */
 
@@ -428,7 +438,12 @@ void SaveImage(AppState *state)
     Image img = LoadImageFromTexture(renderTexTarget.texture);
     ImageFlipVertical(&img);
 
-    auto filename = TextFormat("snapshot_%i_%i_%s.png", state->samplesCurr, state->samplesMax, GetTimeStamp());
+    auto filename = TextFormat("snapshot_%i_%i_%s_%s_%i.png", 
+                               state->samplesCurr, 
+                               state->samplesMax, 
+                               GetTimeStamp(), 
+                               state->rendererType == IRRADIENCE_PROBES ? "irradiance_probe" : "raytrace", 
+                               state->rendererType == IRRADIENCE_PROBES ? PROBE_SIZES[state->probSizeIdx] : 0);
     ExportImage(img, filename);
     UnloadImage(img);
 
@@ -452,6 +467,7 @@ void RunJumpFloodAlgorithm(AppState *state)
     int stepWidth = std::max(state->sceneSize.x, state->sceneSize.y) / 2;
     int iterations = ceil(log2(std::max(state->sceneSize.x, state->sceneSize.y)));
     uint stepWidthLocs = rlGetLocationUniform(state->jfaIterationProgram, "uStepWidth");
+    iterations = 10;
 
     rlEnableShader(state->jfaIterationProgram);
     for (int i = 0; i < iterations; i++)
@@ -574,7 +590,6 @@ void RunGiRayTracingRenderPipeline(AppState *state)
 
 void RunGiIrradianceProbeRenderPipeline(AppState *state)
 {
-
     // Compute GI
     rlEnableShader(state->giIrradianceProbeTraceProgram);
 
@@ -585,10 +600,11 @@ void RunGiIrradianceProbeRenderPipeline(AppState *state)
     rlActiveTextureSlot(3);
     rlEnableTexture(state->sceneNormalsTex);
 
+
     rlBindImageTexture(state->giProbeIrradianceDepthTex, 4, RL_PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, false);
     rlBindShaderBuffer(state->rayCountSSBO, 5);
 
-    uint dispatchSize = sqrt((DEFAULT_PROBE_WIDTH * DEFAULT_PROBE_HEIGHT) * DEFAULT_PROBE_ANGLE_RESOLUTION) / COMPUTE_SHADER_DISPATCH_X;
+    uint dispatchSize = sqrt((PROBE_SIZES[state->probSizeIdx] * (PROBE_SIZES[state->probSizeIdx])));
     rlComputeShaderDispatch(dispatchSize, dispatchSize, 1);
     rlDisableShader();
 
@@ -597,6 +613,7 @@ void RunGiIrradianceProbeRenderPipeline(AppState *state)
     // Compute GI
     rlEnableShader(state->giIrradianceProbeQueryProgram);
     rlActiveTextureSlot(1);
+    rlTextureParameters(state->giProbeIrradianceDepthTex, RL_TEXTURE_MIN_FILTER, RL_TEXTURE_FILTER_MIP_LINEAR);
     rlEnableTexture(state->giProbeIrradianceDepthTex);
     rlBindShaderBuffer(state->sceneGiSSBO_A, 2);
     rlComputeShaderDispatch(state->sceneSize.x / COMPUTE_SHADER_DISPATCH_X, state->sceneSize.y / COMPUTE_SHADER_DISPATCH_Y, 1);
@@ -685,7 +702,7 @@ void DrawInfoPanel(AppState *state)
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, 100);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, 100);
     Vector2 anchor = Vector2({10, 10});
-    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 200, 180}, "Info Panel");
+    GuiWindowBox((Rectangle){anchor.x - 10, anchor.y - 10, 200, 200}, "Info Panel");
     anchor.y += 20;
     GuiLabel((Rectangle){anchor.x, anchor.y + 20 - 20, 300, 20}, TextFormat("%s %d %d", "MouseXY", (int)state->mousePosCurr.x, (int)state->mousePosCurr.y));
     GuiLabel((Rectangle){anchor.x, anchor.y + 40 - 20, 300, 20}, TextFormat("%s %f, %s %.2f %.2f", "D", state->distClosestSurface, "N", state->normals.x, state->normals.y));
@@ -694,6 +711,7 @@ void DrawInfoPanel(AppState *state)
     GuiLabel((Rectangle){anchor.x, anchor.y + 100 - 20, 300, 20}, TextFormat("Render Time: %.2f", state->timeElapsed));
     GuiLabel((Rectangle){anchor.x, anchor.y + 120 - 20, 300, 20}, TextFormat("Samples: %d / %d", state->samplesCurr, state->samplesMax));
     GuiLabel((Rectangle){anchor.x, anchor.y + 140 - 20, 300, 20}, TextFormat("Renderer: %s", state->rendererType == RAYTRACE ? "Raytrace" : "Radiance Cascades"));
+    GuiLabel((Rectangle){anchor.x, anchor.y + 160 - 20, 300, 20}, TextFormat("Probe Size: %d", PROBE_SIZES[state->probSizeIdx]));
 }
 
 void DrawProgressBar(AppState *state)
@@ -774,6 +792,19 @@ void UpdateInput(AppState *state)
         state->rendererType = IRRADIENCE_PROBES;
         state->mode = RESTART;
         TraceLog(LOG_INFO, "Switched To Irradiance Field Probe GI");
+    }
+    if (IsKeyPressed(KEY_RIGHT))
+    {
+        state->probSizeIdx = (state->probSizeIdx + 1) % std::size(PROBE_SIZES);
+        state->mode = RESTART;
+        TraceLog(LOG_INFO, "Probe Size Is %d", PROBE_SIZES[state->probSizeIdx]);
+    }
+
+    if (IsKeyPressed(KEY_LEFT))
+    {
+        state->probSizeIdx = (state->probSizeIdx - 1 + std::size(PROBE_SIZES)) % std::size(PROBE_SIZES);
+        state->mode = RESTART;
+        TraceLog(LOG_INFO, "Probe Size Is %d", PROBE_SIZES[state->probSizeIdx]);
     }
 }
 

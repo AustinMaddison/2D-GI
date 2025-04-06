@@ -120,8 +120,8 @@ void GenBounceRay(inout vec2 pos, inout vec2 dir)
     dir = RandomUnitHfCircleDir(normal, seed);
 }
 
-const int DEFAULT_PROBE_WIDTH = 32;
-const int DEFAULT_PROBE_HEIGHT = 32;
+const int DEFAULT_PROBE_WIDTH = 64;
+const int DEFAULT_PROBE_HEIGHT = 64;
 const int DEFAULT_PROBE_ANGLE_RESOLUTION = 16;
 const int DEFAULT_PROBE_LOCAL_SIZE = int(sqrt(float(DEFAULT_PROBE_ANGLE_RESOLUTION)));
 
@@ -147,8 +147,8 @@ ivec2 getProbeIdx(ivec2 probeIdx, vec2 dir)
 
 vec2 SubpixelJitter(vec2 uv, float sampleIndex)
 {
-    float jitterX = hash01(vec2(sampleIndex, uv.x)) - 0.5;
-    float jitterY = hash01(vec2(sampleIndex, uv.y)) - 0.5;
+    float jitterX = hash01(vec2(sampleIndex, uv.x)) * 2.0 - 1.0;
+    float jitterY = hash01(vec2(sampleIndex, uv.y)) *2.0 - 1.0;
     return uv + vec2(jitterX, jitterY) / vec2(uResolution);
 }
 
@@ -156,7 +156,7 @@ void main()
 {
 
     ivec2 st = ivec2(gl_GlobalInvocationID.xy);
-    vec2 uv = (vec2(st) + 0.5) / vec2(DEFAULT_PROBE_WIDTH, DEFAULT_PROBE_HEIGHT);
+    vec2 uv = (vec2(st) + 0.5) / vec2(imageSize(probeIrradiancDepthImage).xy);
     
     vec2 pos = vec2(0.);
     vec2 dir = vec2(0.);
@@ -185,12 +185,13 @@ void main()
         GenBounceRay(pos, dir);
     }
 
-    ivec2 idx = getProbeIdx(st, dir_0);
+    // ivec2 idx = getProbeIdx(st, dir_0);
+    ivec2 idx = ivec2(st);
     vec4 prevValue = imageLoad(probeIrradiancDepthImage, idx);
     vec3 accumulatedValue = (prevValue.rgb * float(uSamples - 1) + contribution) / float(uSamples + 1);
     imageStore(probeIrradiancDepthImage, idx, vec4(accumulatedValue, 0.));
 
-    // imageStore(probeIrradiancDepthImage, st, vec4(contribution, 0.0)); 
+    // imageStore(probeIrradiancDepthImage, idx, vec4(contribution, 0.0)); 
 
     // if (uSamples > 0)
     // {

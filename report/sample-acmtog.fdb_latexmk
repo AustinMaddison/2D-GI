@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex sample-acmtog"] 1743524006.08498 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743524380.41863 0
+["bibtex sample-acmtog"] 1743524006.08498 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743867192.89105 0
   "./ACM-Reference-Format.bst" 1743398046 90749 48abc1cbed6fafc6fc31528e3aa606ca ""
   "./sample-base.bib" 1743398046 53502 964ea99580e0dcb033825342c38b7d6d ""
-  "sample-acmtog.aux" 1743524379.98494 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
+  "sample-acmtog.aux" 1743867192.34098 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
   (generated)
   "sample-acmtog.bbl"
   "sample-acmtog.blg"
   (rewritten before read)
-["pdflatex"] 1743524378.73108 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743524380.41884 0
+["pdflatex"] 1743867190.96159 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743867192.89132 0
   "/etc/texmf/web2c/texmf.cnf" 1740481272.74214 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743524045.00591 31419 a4ace39d4001bf30cba41248dc4fd124 ""
+  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743867190.62498 31284 ed9c173795fb58635d62f0a04d9c7edc ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_25tcsq.enc" 1490131464 2921 8ca0eb0831f9bc5da080d3697cfe67bf ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa5.enc" 1490131464 2933 9ad527ce78d7c5fa0a642dead095f172 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_naooyc.enc" 1490131464 3357 5261ce65ba03aef9faf6135657b9abb6 ""
@@ -180,11 +180,11 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1740481303 5483312 31090f1c3437d4bbfc097aaea5bf9b97 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1740481379 8243982 0c4cbad0d94099e685e4533e98f2354e ""
   "acmart.cls" 1743398046 119755 fb6b15d8a2b05651c52a19a84ffb7b05 ""
-  "comment.cut" 1743524379.78693 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
-  "sample-acmtog.aux" 1743524379.98494 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
-  "sample-acmtog.bbl" 1743524006.23117 1712 4d28b6ea748d03d80535fe94a7371ddb "bibtex sample-acmtog"
-  "sample-acmtog.out" 1743524379.98594 413 5865056750e12589ab31951482a9b72d "pdflatex"
-  "sample-acmtog.tex" 1743524045.00591 31419 a4ace39d4001bf30cba41248dc4fd124 ""
+  "comment.cut" 1743867192.12498 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
+  "sample-acmtog.aux" 1743867192.34098 837 ada8f1165967679ae34c64f4073ecf56 "pdflatex"
+  "sample-acmtog.bbl" 1743559401.65064 1712 4d28b6ea748d03d80535fe94a7371ddb "bibtex sample-acmtog"
+  "sample-acmtog.out" 1743867192.34198 413 5865056750e12589ab31951482a9b72d "pdflatex"
+  "sample-acmtog.tex" 1743867190.62498 31284 ed9c173795fb58635d62f0a04d9c7edc ""
   (generated)
   "comment.cut"
   "sample-acmtog.aux"

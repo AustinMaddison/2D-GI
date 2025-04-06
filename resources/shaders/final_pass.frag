@@ -33,11 +33,13 @@ void main()
 
     // fragColor = vec4(fragTexCoord, 0., 1.0f);
     // col = texture(colorMaskTex, fragTexCoord).rgb;
+    // col = vec3(texture(colorMaskTex, fragTexCoord).a);
+
     // col = vec3(texture(sdfTex, fragTexCoord)/float(uResolution.x));
     // col = vec3(texture(normalsTex, fragTexCoord).rg, 0.);
     // col = vec3(finalPassBuffer[getIdx(uv)]);
     // float sdf = smoothstep(1.0f - (sin(uTime)*.5+0.5), -0.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
-    // float sdf = smoothstep(1., -0.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
+    // float sdf = smoothstep(-0.5, 1.1f, length(texture(jfaTex, fragTexCoord).rg - fragTexCoord));
     // col = vec3(texture(jfaTex, fragTexCoord).rg, 0.);
     // col = vec3(sdf);
 
@@ -45,5 +47,6 @@ void main()
 
 
     col = vec3(finalPassBuffer[getIdx(uv)]);
+    // col = vec3(finalPassBuffer[getIdx(uv)]);
     fragColor = vec4(col, 1.0f);
 }
