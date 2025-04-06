@@ -2,7 +2,7 @@
 %%% Do NOT edit. File created by BibTeX with style
 %%% ACM-Reference-Format-Journals [18-Jan-2012].
 
-\begin{thebibliography}{0}
+\begin{thebibliography}{7}
 
 %%% ====================================================================
 %%% NOTE TO THE USER: you can override these defaults by providing
@@ -35,5 +35,83 @@
 \providecommand\bibinfo[2]{#2}
 \providecommand\natexlab[1]{#1}
 \providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Datta et~al\mbox{.}(2023)]%
+        {datta2023adaptive}
+\bibfield{author}{\bibinfo{person}{S. Datta}, \bibinfo{person}{N. Goli}, {and} \bibinfo{person}{J. Zhang}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Adaptive Dynamic Global Illumination}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2301.05125}} (\bibinfo{year}{2023}).
+\newblock
+\urldef\tempurl%
+\url{https://arxiv.org/abs/2301.05125}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Kajiya(1986)]%
+        {kajiya}
+\bibfield{author}{\bibinfo{person}{James~T. Kajiya}.} \bibinfo{year}{1986}\natexlab{}.
+\newblock \showarticletitle{The Rendering Equation}. In \bibinfo{booktitle}{\emph{SIGGRAPH '86: Proceedings of the 13th annual conference on Computer graphics and interactive techniques}}. \bibinfo{pages}{143--150}.
+\newblock
+\href{https://doi.org/10.1145/15922.15902}{doi:\nolinkurl{10.1145/15922.15902}}
+
+
+\bibitem[Schneider et~al\mbox{.}(2017)]%
+        {schneider2017efficient}
+\bibfield{author}{\bibinfo{person}{A. Schneider}, \bibinfo{person}{S. Schönborn}, \bibinfo{person}{B. Egger}, \bibinfo{person}{L. Frobeen}, {and} \bibinfo{person}{T. Vetter}.} \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{An Efficient Representation for Irradiance Environment Maps}. In \bibinfo{booktitle}{\emph{Proceedings of the IEEE International Conference on Computer Vision (ICCV)}}.
+\newblock
+\urldef\tempurl%
+\url{https://en.wikipedia.org/wiki/Spherical_harmonic_lighting}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Sedláček(2019)]%
+        {sedlacek2019real}
+\bibfield{author}{\bibinfo{person}{Š. Sedláček}.} \bibinfo{year}{2019}\natexlab{}.
+\newblock \emph{\bibinfo{title}{Real-time Global Illumination using Irradiance Probes}}.
+\newblock \bibinfo{thesistype}{Master's\ thesis}. \bibinfo{school}{Czech Technical University in Prague}.
+\newblock
+\urldef\tempurl%
+\url{https://dcgi.fel.cvut.cz/wp-content/wpallimport-dist/theses/pdf/theses-2019-sedlasi1-thesis.pdf}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Silvennoinen and Lehtinen(2017)]%
+        {silvennoinen2017real}
+\bibfield{author}{\bibinfo{person}{A. Silvennoinen} {and} \bibinfo{person}{J. Lehtinen}.} \bibinfo{year}{2017}\natexlab{}.
+\newblock \showarticletitle{Real-time Global Illumination by Precomputed Local Reconstruction from Sparse Radiance Probes}.
+\newblock \bibinfo{journal}{\emph{ACM Transactions on Graphics}} \bibinfo{volume}{36}, \bibinfo{number}{6} (\bibinfo{year}{2017}), \bibinfo{pages}{230}.
+\newblock
+\urldef\tempurl%
+\url{https://www.cs.mcgill.ca/~ywang411/ProjectPage/Thesis_RadianceProbePlacement.pdf}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Sloan(2008)]%
+        {sloan2008stupid}
+\bibfield{author}{\bibinfo{person}{P. Sloan}.} \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{Stupid Spherical Harmonics (SH) Tricks}. In \bibinfo{booktitle}{\emph{ResearchGate}}.
+\newblock
+\urldef\tempurl%
+\url{https://www.researchgate.net/publication/215506209_Stupid_Spherical_Harmonics_SH_Tricks}
+\showURL{%
+\tempurl}
+
+
+\bibitem[Vardis(2015)]%
+        {vardis2015efficient}
+\bibfield{author}{\bibinfo{person}{K. Vardis}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \emph{\bibinfo{title}{Efficient Illumination Algorithms for Global Illumination in Interactive Rendering}}.
+\newblock \bibinfo{thesistype}{Ph.\,D. Dissertation}. \bibinfo{school}{Athens University of Economics and Business}.
+\newblock
+\urldef\tempurl%
+\url{https://graphics.cs.aueb.gr/graphics/docs/PhD_Thesis_Kostas_Vardis_webversion_lowres.pdf}
+\showURL{%
+\tempurl}
+
 
 \end{thebibliography}

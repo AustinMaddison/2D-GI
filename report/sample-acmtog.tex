@@ -16,11 +16,11 @@
 \acmDOI{}
 
 
-\acmJournal{TOG}
-\acmVolume{37}
-\acmNumber{4}
-\acmArticle{111}
-\acmMonth{8}
+% \acmJournal{TOG}
+% \acmVolume{37}
+% \acmNumber{4}
+% \acmArticle{111}
+% \acmMonth{8}
 
 \citestyle{acmauthoryear}
 
@@ -44,13 +44,13 @@
 
 \renewcommand{\shortauthors}{Austin J. Maddison}
 
-%   \begin{teaserfigure}
-%     \includegraphics[width=\textwidth]{sampleteaser}
-%     \caption{figure caption}
-%     \Description{figure description}
-%   \end{teaserfigure}
+  \begin{teaserfigure}
+    \includegraphics[width=\textwidth]{teaser.png}
+    \caption{figure caption}
+    \Description{figure description}
+  \end{teaserfigure}
 
-\begin{abstract} 
+\begin{abstract}  
 Global illumination (GI) is essential for achieving photorealistic rendering by simulating the indirect interactions of light within a scene. While Monte Carlo ray tracing offers high-fidelity results, its computational cost makes it impractical for real-time applications. This report explores how Monte Carlo-based GI can be adapted for real-time rendering through the use of irradiance field probes. I begin by covering the fundamentals of Monte Carlo ray tracing and the challenges of real-time GI, then introduce irradiance probes as a practical solution to bridge the gap between quality and performance. The implementation is done in a 2D discretized space, using a Signed Distance Field (SDF) representation. While most GI research focuses on 3D scenes, this work explores how similar concepts can be applied in 2D offering potential value for 2D engines aiming for more realistic lighting. 
 \end{abstract}
 
@@ -91,7 +91,7 @@ I compare the performance and visual quality of irradiance probes with Monte Car
 \begin{itemize}
   \item \textbf{SDF-Based Render Pipeline}: Description of the custom 2D rendering pipeline and use of Signed Distance Fields to represent geometry.
   \item \textbf{Monte Carlo GI in 2D}: Adaptation and implementation of Monte Carlo ray tracing in a 2D SDF environment.
-  \item \textbf{Real-Time Irradiance Probes}: Details on implementing irradiance probes on the GPU for fast and scalable GI.
+  \item \textbf{Irradiance Probes}: Details on implementing irradiance probes on the GPU for fast and scalable GI.
 \end{itemize}
 
 \textbf{Performance Evaluation}:
@@ -107,22 +107,134 @@ I compare the performance and visual quality of irradiance probes with Monte Car
 
 Through this project, I aim to investigate how core GI algorithms work and written for the GPU and how they can be translated into real-time rendering a simplified 2D context.
 
-\section{Related Work}
+\section{Related Work:}
+Global illumination is the sum of all incoming irradiance at a given point, including both direct and indirect light contributions. 
+
 \subsection{Monte Carlo Ray Tracing}
+One of the most widely used techniques for simulating global illumination is Monte Carlo ray tracing, a probabilistic method that traces rays from light sources and simulates their interactions with surfaces in a scene. 
+The diffuse global illumination (GI) irradiance \( L_0 \) can be recursively \cite{kajiya}. defined as:
+
+\begin{equation}
+L_0(p) = L_e(p) + \rho(p) \int_{\Omega} L_0(p', \omega') f_r(p, \omega, \omega') (\omega' \cdot n) \, d\omega'
+\end{equation}
+
+where:
+\begin{itemize}
+  \item \( L_0(p) \): The outgoing radiance at point \( p \).
+  \item \( L_e(p) \): The emitted radiance at point \( p \).
+  \item \( \rho(p) \): The surface reflectance at \( p \).
+  \item \( f_r(p, \omega, \omega') \): The bidirectional reflectance distribution function (BRDF).
+  \item \( \omega' \): The incoming light direction.
+  \item \( n \): The surface normal at \( p \).
+  \item \( \Omega \): The hemisphere above the surface.
+\end{itemize}
+ However, Monte Carlo ray tracing can be computationally expensive, requiring many samples to achieve noise-free results. 
+
 \subsection{Challenges of Real-Time GI}
+Global illumination techniques like Monte Carlo ray tracing are too slow for real-time use due to their high computational demands. To speed up GI, two main approaches are used: scene representation proxies (like simplified geometry or voxel grids) and precomputing or caching (such as baked lighting in textures or vertices). While these methods improve performance, they struggle with dynamic scenes, as changes require recalculation of precomputed data.
+
+Irradiance fields fall into the category of caching techniques but offer a sparser and more flexible solution. By decoupling lighting information from scene geometry and storing indirect lighting in a grid or probe-based structure, irradiance fields enable real-time GI approximations. This approach allows for cheaper recalculations, striking a balance between performance and visual fidelity.
+
 \subsection{Real-Time GI with Irradiance Probes}
+To address the challenges of real-time global illumination, irradiance probes provide an efficient solution for approximating indirect lighting. Irradiance probes decouple light sampling from scene geometry, enabling the calculation of indirect lighting in a more computationally feasible manner. By storing irradiance values in a grid or field throughout the scene, they allow for quick retrieval of lighting information, significantly reducing the cost of real-time global illumination. This method works particularly well in dynamic or large-scale environments where full ray tracing would be too costly. The trade-off is a reduction in accuracy, but in many cases, irradiance probes offer a good balance between performance and visual fidelity.
+
 \subsection{Supercharging Irradiance Fields}
+While irradiance probes offer a practical solution for real-time GI, several advanced techniques can enhance their efficiency and adaptability. Spherical Harmonics (SH) are often used to compactly represent irradiance data, enabling efficient storage and retrieval \cite{sloan2008stupid, schneider2017efficient}. Visibility information can be incorporated into probes to better account for occlusions, improving the accuracy of indirect lighting \cite{silvennoinen2017real}. Dynamic updates with state tracking allow probes to adapt to changes in the scene, ensuring responsiveness in dynamic environments \cite{sedlacek2019real, datta2023adaptive}. Irregular and variably sparse placement of probes, guided by scene complexity or lighting conditions, can further optimize memory usage and computational overhead \cite{vardis2015efficient}. These enhancements collectively improve the quality and performance of irradiance fields in real-time applications.
 
 \section{Approach}
 \subsection{SDF-Based Render Pipeline}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=.7\linewidth]{pipeline.pdf}
+  \caption{Overview of the 2D rendering pipeline. The input consists of a color image and a mask, which are processed to generate a Signed Distance Field (SDF) using the Jump Flooding Algorithm. Normals are derived from the SDF, and along with the scene color, are passed to the Global Illumination (GI) renderer. The GI renderer, using either Monte Carlo ray tracing or irradiance fields, computes indirect lighting. Finally, the GI result is composited with the scene color, tonemapped, and rendered to the output framebuffer.}
+  \Description{A diagram showing the flow of the 2D rendering pipeline, starting from input image and mask, to SDF and normal generation, GI rendering, compositing, tonemapping, and final rendering.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+    \includegraphics[width=0.7\linewidth]{scene_description.png}
+    \caption{Left: Scene color image. Right: Scene mask image.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+    \includegraphics[width=0.7\linewidth]{jfa.png}
+    \caption{Left: Surface positions image. Right: Jump flooded scene positions.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+    \includegraphics[width=0.7\linewidth]{sdf_norm.png}
+    \caption{Left: Signed Distance Field. Right: Normals.}
+\end{figure}
+
+\break
+
+
 \subsection{Monte Carlo GI in 2D}
-\subsection{Real-Time Irradiance Probes}
+We use the 2D buffers shown above to then trace scene using 2D raymarching. This kind of intersection testing is efficient because the SDF provides the minimum distance to all surfaces and at any given position. This allows the ray to skip large sections of the scene while marching. The high level algorithm is the following... (detailed algorithm look into the source code in Section~\ref{sec:sourcecode}).
+
+\subsubsection{Algorithm}
+\begin{enumerate}
+  \item Initialize ray position at every \textbf{scene position} random unit circle direction.
+  \item Initialize ray direction with random unit circle direction.
+  \item Set total distance and color contribution to zero.
+  \item Repeat for a fixed number of bounces:
+  \begin{enumerate}
+    \item Perform ray marching to detect object intersection.
+    \item If no intersection, break the loop.
+    \item Add color contribution based on hit properties.
+    \item Compute new half-unit circle ray direction for the next bounce.
+  \end{enumerate}
+  \item Blend results if using multiple samples. (Accumilation)
+  \item Write final color to global illumination output texture.
+\end{enumerate}
+
+\subsection{Irradiance Probes}
+To implement irradiance probes using a sparse grid, we first define the grid layout and perform ray tracing for each probe position. The results are stored in a map layout for efficient querying during rendering.
+
+\subsubsection{Probe Position Initialization}
+We define a grid of probe positions across the scene. Each probe stores irradiance data computed using ray tracing algorithm above into a texture. Then after the radiance has been computed it can be queried by any position in the scene to get the interpolated GI irradiance.
+
+\subsubsection{Algorithm Compute}
+\begin{enumerate}
+  \item Initialize ray position at every \textbf{probe position} random unit circle direction.
+  \item Initialize ray direction with random unit circle direction.
+  \item Set total distance and color contribution to zero.
+  \item Repeat for a fixed number of bounces:
+  \begin{enumerate}
+    \item Perform ray marching to detect object intersection.
+    \item If no intersection, break the loop.
+    \item Add color contribution based on hit properties.
+    \item Compute new half-unit circle ray direction for the next bounce.
+  \end{enumerate}
+  \item Blend results if using multiple samples. (Accumilation)
+  \item Write final color to probe's texture.
+\end{enumerate}
+
+\subsubsection{Algorithm Query}
+\begin{enumerate}
+  \item For a given scene position, find the nearest probe positions in the sparse grid.
+  \item Interpolate the irradiance values from the neighboring probes using a weighted average based on distance.
+  \item Apply the interpolated irradiance to compute the indirect lighting contribution for the scene position.
+\end{enumerate}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.7\linewidth]{irradiance.png}
+  \caption{Left: Irradiance probe positions (marked as the square dots). Right: Irraidance probe irradiance data texture}
+\end{figure}
+
 
 \section{Performance Evaluation}
 \subsection{Benchmarks}
 \subsection{Image Comparisons}
 
 \section{Conclusion}
+
+\section{Source Code}
+\label{sec:sourcecode}
 
 
 % \section{Template Overview}
@@ -645,12 +757,8 @@ All my friends and peers <3.
 %% The next two lines define the bibliography style to be used, and
 %% the bibliography file.
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sample-base}
+\bibliography{references.bib}
 
-
-%%
-%% If your work has an appendix, this is the place to put it.
-\appendix
 
 
 \end{document}
