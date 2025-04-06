@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex sample-acmtog"] 1743945806.78945 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743945809.82196 0
+["bibtex sample-acmtog"] 1743945933.87299 "sample-acmtog.aux" "sample-acmtog.bbl" "sample-acmtog" 1743945936.61056 0
   "./ACM-Reference-Format.bst" 1743398046 90749 48abc1cbed6fafc6fc31528e3aa606ca ""
   "./references.bib" 1743942697.59179 3517 e10a143fb9b8015f29af7434fffd02a2 ""
-  "sample-acmtog.aux" 1743945809.28984 5391 31a8872017cdad5c4e07ffcbec83b2cf "pdflatex"
+  "sample-acmtog.aux" 1743945936.15402 5391 31a8872017cdad5c4e07ffcbec83b2cf "pdflatex"
   (generated)
   "sample-acmtog.bbl"
   "sample-acmtog.blg"
   (rewritten before read)
-["pdflatex"] 1743945806.94471 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743945809.82227 0
+["pdflatex"] 1743945934.02455 "/home/austin/dev/2D-GI/report/sample-acmtog.tex" "sample-acmtog.pdf" "sample-acmtog" 1743945936.61078 0
   "/etc/texmf/web2c/texmf.cnf" 1740481272.74214 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743945803.23785 35973 284e7c079cc66517c2ba86210a401810 ""
+  "/home/austin/dev/2D-GI/report/sample-acmtog.tex" 1743945930.737 35966 0658ee02cf9ccd3628d93472cf86f5ae ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_25tcsq.enc" 1490131464 2921 8ca0eb0831f9bc5da080d3697cfe67bf ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa5.enc" 1490131464 2933 9ad527ce78d7c5fa0a642dead095f172 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_7grukw.enc" 1490131464 2934 a4a9158faed2e9e89c771b4e3b7fc12f ""
@@ -215,14 +215,14 @@
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1740481303 5483312 31090f1c3437d4bbfc097aaea5bf9b97 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1740481379 8243982 0c4cbad0d94099e685e4533e98f2354e ""
   "acmart.cls" 1743398046 119755 fb6b15d8a2b05651c52a19a84ffb7b05 ""
-  "comment.cut" 1743945808.69584 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
+  "comment.cut" 1743945935.58402 29 8bdd838b388d72dcf339665acf60d3cc "pdflatex"
   "irradiance.png" 1743945735.18397 3991527 008a7a88142e55a389a866500371d3d6 ""
   "jfa.png" 1743943739.7885 4023584 f6bf35c2a315af37c94d1067ae81e0e7 ""
   "pipeline.pdf" 1743940569.53188 17588 1529ba8b8d81f5507a0325a9d5280008 ""
-  "sample-acmtog.aux" 1743945809.28984 5391 31a8872017cdad5c4e07ffcbec83b2cf "pdflatex"
-  "sample-acmtog.bbl" 1743945806.93684 5198 f46163127ab117db66a652701386fb01 "bibtex sample-acmtog"
-  "sample-acmtog.out" 1743945809.29184 2995 45386b65c5ae7b039fc58ff7b8a39eed "pdflatex"
-  "sample-acmtog.tex" 1743945803.23785 35973 284e7c079cc66517c2ba86210a401810 ""
+  "sample-acmtog.aux" 1743945936.15402 5391 31a8872017cdad5c4e07ffcbec83b2cf "pdflatex"
+  "sample-acmtog.bbl" 1743945934.01701 5198 f46163127ab117db66a652701386fb01 "bibtex sample-acmtog"
+  "sample-acmtog.out" 1743945936.15402 2995 45386b65c5ae7b039fc58ff7b8a39eed "pdflatex"
+  "sample-acmtog.tex" 1743945930.737 35966 0658ee02cf9ccd3628d93472cf86f5ae ""
   "scene_description.png" 1743943712.39002 3991527 cc27970d5c9204017994839e9790c6d2 ""
   "sdf_norm.png" 1743943755.52978 4023584 067b47b77cb88f89fdf0c3f967574ed1 ""
   "teaser.png" 1743938149.72181 9857619 f7738db0d489c7dc9553a2c9c3839b4e ""

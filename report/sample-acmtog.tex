@@ -146,7 +146,7 @@ While irradiance probes offer a practical solution for real-time GI, several adv
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=.7\linewidth]{pipeline.pdf}
+  \includegraphics[width=.8\linewidth]{pipeline.pdf}
   \caption{Overview of the 2D rendering pipeline. The input consists of a color image and a mask, which are processed to generate a Signed Distance Field (SDF) using the Jump Flooding Algorithm. Normals are derived from the SDF, and along with the scene color, are passed to the Global Illumination (GI) renderer. The GI renderer, using either Monte Carlo ray tracing or irradiance fields, computes indirect lighting. Finally, the GI result is composited with the scene color, tonemapped, and rendered to the output framebuffer.}
   \Description{A diagram showing the flow of the 2D rendering pipeline, starting from input image and mask, to SDF and normal generation, GI rendering, compositing, tonemapping, and final rendering.}
 \end{figure}
@@ -169,7 +169,6 @@ While irradiance probes offer a practical solution for real-time GI, several adv
     \caption{Left: Signed Distance Field. Right: Normals.}
 \end{figure}
 
-\break
 
 
 \subsection{Monte Carlo GI in 2D}
